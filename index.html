@@ -341,99 +341,184 @@
       outline-offset: 2px;
     }
 
-    /* ---------- Login / Signup dialog ---------- */
+    /* ---------- Login dialog ---------- */
     #authDlg {
-      width: min(400px, 92vw);
-      padding: 24px;
+      width: min(420px, 92vw);
+      padding: 0;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 16px;
       background: var(--bg);
       color: var(--ink);
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
     }
 
     #authDlg::backdrop {
-      background: rgba(0, 0, 0, .5);
+      background: rgba(10, 14, 25, .62);
+      backdrop-filter: blur(3px);
     }
 
-    #authDlg h2 {
-      font-size: 1.4rem;
-      margin: 0 0 4px;
+    #authDlg .dhead {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 56px 18px 22px;
+      background: var(--acc);
+      color: var(--bg);
     }
 
-    #authDlg .sub {
-      margin: 0 0 16px;
-      color: var(--mute);
+    #authDlg .dhead b {
+      display: block;
+      font-size: 1.05rem;
+      line-height: 1.2;
+    }
+
+    #authDlg .dhead small {
+      display: block;
+      opacity: .9;
+      font-size: .82rem;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex: none;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .2);
+      font-size: 1.5rem;
     }
 
     #authDlg .x {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
       border: 0;
-      color: var(--mute);
-      font-size: 1.3rem;
-      line-height: 1;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .18);
+      color: inherit;
+      font-size: 1rem;
       cursor: pointer;
-      padding: 6px 10px;
+    }
+
+    #authDlg .x:hover {
+      background: rgba(255, 255, 255, .3);
+    }
+
+    #authDlg .dbody {
+      padding: 22px;
+    }
+
+    #authDlg h2 {
+      font-size: 1.45rem;
+      margin: 0 0 4px;
+    }
+
+    #authDlg .sub {
+      margin: 0 0 18px;
+      color: var(--mute);
     }
 
     #authDlg .tabs {
       display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
+      gap: 4px;
+      padding: 4px;
+      margin-bottom: 8px;
+      background: var(--soft);
+      border-radius: 10px;
     }
 
     #authDlg .tabs button {
       flex: 1;
       padding: 9px;
-      border: 1px solid var(--line);
-      background: var(--bg);
-      color: var(--ink);
+      border: 0;
+      background: transparent;
+      color: var(--mute);
       border-radius: 8px;
       font: inherit;
+      font-weight: 600;
       cursor: pointer;
     }
 
     #authDlg .tabs button.on {
-      background: var(--acc);
-      border-color: var(--acc);
-      color: var(--bg);
+      background: var(--bg);
+      color: var(--acc);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
     }
 
     #authDlg label {
       display: block;
       font-size: .9rem;
-      margin: 12px 0 4px;
+      font-weight: 600;
+      margin: 14px 0 5px;
     }
 
     #authDlg input {
       width: 100%;
-      padding: 11px;
+      padding: 12px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 10px;
       background: var(--bg);
       color: var(--ink);
       font: inherit;
     }
 
-    #authDlg .go {
+    #authDlg input:focus {
+      outline: none;
+      border-color: var(--acc);
+      box-shadow: 0 0 0 3px var(--accbg);
+    }
+
+    #authDlg .pw {
+      position: relative;
+    }
+
+    #authDlg .pw input {
+      padding-right: 68px;
+    }
+
+    #authDlg .pw button {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      padding: 6px 10px;
+      border: 0;
+      background: none;
+      color: var(--acc);
+      font: inherit;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #authDlg .go,
+    #examPick .go {
       width: 100%;
-      margin-top: 18px;
+      margin-top: 20px;
+      padding: 13px 20px;
     }
 
-    #authDlg .go:disabled {
-      opacity: .6;
-      cursor: wait;
+    #authDlg .go:disabled,
+    #examPick .go:disabled {
+      opacity: .5;
+      cursor: not-allowed;
     }
 
-    #authMsg {
+    #authMsg,
+    #examMsg {
       min-height: 1.4em;
       margin: 12px 0 0;
       font-size: .92rem;
     }
 
-    #authMsg.err {
+    #authMsg.err,
+    #examMsg.err {
       color: var(--err);
     }
 
@@ -445,7 +530,7 @@
       display: none !important;
     }
 
-    /* ---------- Login gate: page is hidden until the user logs in ---------- */
+    /* ---------- Gate: hidden site until login + exam choice ---------- */
     body.locked > header,
     body.locked > section,
     body.locked > footer,
@@ -455,27 +540,170 @@
       display: none !important;
     }
 
-    #gate {
+    body.locked {
+      background: var(--soft);
+    }
+
+    #gate,
+    #examPick {
       display: none;
-      text-align: center;
-      padding: 90px 18px;
+      min-height: calc(100vh - 57px);
+      padding: 40px 18px;
+      place-items: center;
     }
 
     body.locked #gate {
+      display: grid;
+    }
+
+    body.locked.picking #gate {
+      display: none;
+    }
+
+    body.locked.picking #examPick {
+      display: grid;
+    }
+
+    .gatebox,
+    .pickbox {
+      width: 100%;
+      max-width: 520px;
+      padding: 34px 28px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(20, 30, 60, .12);
+    }
+
+    .gatebox {
+      text-align: center;
+    }
+
+    .gatebox h1,
+    .pickbox h1 {
+      font-size: clamp(1.6rem, 4.5vw, 2rem);
+      margin: 14px 0 8px;
+    }
+
+    .gatebox p,
+    .pickbox .sub {
+      color: var(--mute);
+      margin: 0 auto 22px;
+      max-width: 42ch;
+    }
+
+    .mark.big {
+      margin: 0 auto;
+      width: 64px;
+      height: 64px;
+      font-size: 2rem;
+      background: var(--accbg);
+    }
+
+    .pickhi {
+      margin: 0;
+      color: var(--acc);
+      font-weight: 600;
+    }
+
+    .pickbox .sub {
+      margin-left: 0;
+    }
+
+    .exams {
+      display: grid;
+      gap: 12px;
+    }
+
+    .opt {
+      position: relative;
+      display: block;
+      cursor: pointer;
+    }
+
+    .opt input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .opt .box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
+      transition: border-color .15s, background .15s;
+    }
+
+    .opt .tick {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      flex: none;
+      border: 2px solid var(--line);
+      border-radius: 7px;
+      color: transparent;
+      font-weight: 700;
+    }
+
+    .opt b {
       display: block;
     }
 
-    #gate p {
+    .opt small {
       color: var(--mute);
-      margin: 0 auto 20px;
-      max-width: 40ch;
+    }
+
+    .opt:hover .box {
+      border-color: var(--acc);
+    }
+
+    .opt input:checked + .box {
+      border-color: var(--acc);
+      background: var(--accbg);
+    }
+
+    .opt input:checked + .box .tick {
+      background: var(--acc);
+      border-color: var(--acc);
+      color: var(--bg);
+    }
+
+    .opt input:focus-visible + .box {
+      outline: 3px solid var(--acc);
+      outline-offset: 2px;
     }
 
     #hello {
       font-size: 1.2rem;
       font-weight: 600;
       color: var(--acc);
-      margin: 0 0 6px;
+      margin: 0 0 2px;
+    }
+
+    #examLine {
+      margin: 0 0 8px;
+      color: var(--mute);
+      font-size: .92rem;
+    }
+
+    #examLine .linkbtn {
+      margin-left: 6px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--acc);
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
     }
 
     @media (max-width: 760px) {
@@ -538,42 +766,89 @@
 
 <!-- Login / Signup dialog -->
 <dialog id="authDlg" aria-labelledby="authTitle">
-  <button class="x" id="authClose" type="button" aria-label="Close">✕</button>
-  <h2 id="authTitle">Log in</h2>
-  <p class="sub" id="authSub">Welcome back. Enter your email and password.</p>
-
-  <div class="tabs">
-    <button type="button" id="tabLogin" class="on">Log in</button>
-    <button type="button" id="tabSignup">Sign up</button>
+  <div class="dhead">
+    <span class="mark" aria-hidden="true">📘</span>
+    <div>
+      <b>JEE Short Notes</b>
+      <small>Notes, PYQs and a revision tracker. Free.</small>
+    </div>
+    <button class="x" id="authClose" type="button" aria-label="Close">✕</button>
   </div>
 
-  <form id="authForm" novalidate>
-    <div id="nameRow" hidden>
-      <label for="authName">Name</label>
-      <input id="authName" type="text" autocomplete="name">
+  <div class="dbody">
+    <h2 id="authTitle">Log in</h2>
+    <p class="sub" id="authSub">Welcome back. Enter your email and password.</p>
+
+    <div class="tabs">
+      <button type="button" id="tabLogin" class="on">Log in</button>
+      <button type="button" id="tabSignup">Sign up</button>
     </div>
 
-    <label for="authEmail">Email</label>
-    <input id="authEmail" type="email" autocomplete="email">
+    <form id="authForm" novalidate>
+      <div id="nameRow" hidden>
+        <label for="authName">Name</label>
+        <input id="authName" type="text" autocomplete="name" placeholder="Your name">
+      </div>
 
-    <label for="authPass" id="passLabel">Password</label>
-    <input id="authPass" type="password" autocomplete="current-password" minlength="6">
+      <label for="authEmail">Email</label>
+      <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
 
-    <button class="btn go" id="authGo" type="submit">Log in</button>
-    <p id="authMsg" role="status"></p>
-  </form>
+      <label for="authPass" id="passLabel">Password</label>
+      <div class="pw">
+        <input id="authPass" type="password" autocomplete="current-password" minlength="6">
+        <button type="button" id="togglePw" aria-label="Show password">Show</button>
+      </div>
+
+      <button class="btn go" id="authGo" type="submit">Log in</button>
+      <p id="authMsg" role="status"></p>
+    </form>
+  </div>
 </dialog>
 
 <!-- Shown instead of the website until the user is logged in -->
 <div id="gate">
-  <h1>Log in to continue</h1>
-  <p>Create a free account or log in to access the JEE short notes.</p>
-  <button class="btn" id="gateBtn" type="button">Log in or sign up</button>
+  <div class="gatebox">
+    <span class="mark big" aria-hidden="true">📘</span>
+    <h1>Your JEE revision, in one place</h1>
+    <p>Log in or create a free account to open the short notes, roadmap and revision tracker.</p>
+    <button class="btn" id="gateBtn" type="button">Log in or sign up</button>
+  </div>
+</div>
+
+<!-- Shown after login, until an exam is chosen -->
+<div id="examPick">
+  <div class="pickbox">
+    <p class="pickhi" id="pickHi"></p>
+    <h1>Which exam are you preparing for?</h1>
+    <p class="sub">Choose one or more. You can change this later.</p>
+    <form id="examForm">
+      <div class="exams">
+        <label class="opt">
+          <input type="checkbox" name="exam" value="JEE Main">
+          <span class="box"><span class="tick" aria-hidden="true">✓</span>
+            <span><b>JEE Main</b><small>NITs, IIITs and the qualifier for JEE Advanced</small></span></span>
+        </label>
+        <label class="opt">
+          <input type="checkbox" name="exam" value="JEE Advanced">
+          <span class="box"><span class="tick" aria-hidden="true">✓</span>
+            <span><b>JEE Advanced</b><small>Admission to the IITs</small></span></span>
+        </label>
+        <label class="opt">
+          <input type="checkbox" name="exam" value="EAMCET">
+          <span class="box"><span class="tick" aria-hidden="true">✓</span>
+            <span><b>EAMCET</b><small>State engineering entrance (Telangana and Andhra Pradesh)</small></span></span>
+        </label>
+      </div>
+      <button class="btn go" id="examGo" type="submit" disabled>Continue</button>
+      <p id="examMsg" role="status"></p>
+    </form>
+  </div>
 </div>
 
 <header id="home" class="hero">
   <div class="wrap">
     <p id="hello" aria-live="polite"></p>
+    <p id="examLine" hidden><span id="examText"></span><button type="button" class="linkbtn" id="changeExam">Change</button></p>
     <h1>JEE Preparation, Simplified.</h1>
     <p class="lead">Free short notes, chapter-wise revision resources, PYQs, preparation strategies and useful resources for JEE Main & Advanced aspirants.</p>
     <a class="btn" href="#notes">Explore Notes</a>
@@ -1109,7 +1384,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var dlg = $("authDlg"), btn = $("authBtn"), msg = $("authMsg");
-  var mode = "login", session = null, sb = null;
+  var mode = "login", session = null, sb = null, changing = false;
 
   try {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1132,29 +1407,105 @@
     $("authSub").textContent = signup ? "Sign up with your name, email and a password." : "Welcome back. Enter your email and password.";
     $("passLabel").textContent = signup ? "Set a password" : "Password";
     $("authPass").autocomplete = signup ? "new-password" : "current-password";
+    $("authPass").placeholder = signup ? "At least 6 characters" : "";
     $("authGo").textContent = signup ? "Create account" : "Log in";
     say("");
   }
 
+  // ----- exam choice -----
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('#examForm input[name="exam"]'));
+
+  function chosen() {
+    return boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+  }
+
+  function updatePickBtn() {
+    $("examGo").disabled = chosen().length === 0;
+  }
+
+  function userExams() {
+    var m = session && session.user && session.user.user_metadata;
+    return m && Array.isArray(m.exams) ? m.exams : [];
+  }
+
+  boxes.forEach(function (b) { b.addEventListener("change", updatePickBtn); });
+
+  // ----- decide what the visitor sees -----
   function showState() {
-    if (session) {
-      var u = session.user;
-      var nm = (u.user_metadata && u.user_metadata.name) || (u.email || "").split("@")[0];
-      btn.textContent = "Log out";
-      $("hello").textContent = "Hello, " + nm;
-      document.body.classList.remove("locked");
-      if (dlg.open) dlg.close();
-    } else {
+    var body = document.body;
+
+    if (!session) {
+      body.classList.add("locked");
+      body.classList.remove("picking");
       btn.textContent = "Log in";
       $("hello").textContent = "";
-      document.body.classList.add("locked");
+      $("examLine").hidden = true;
       if (sb && !dlg.open) { setMode("login"); dlg.showModal(); }
+      return;
+    }
+
+    if (dlg.open) dlg.close();
+    btn.textContent = "Log out";
+
+    var u = session.user;
+    var nm = (u.user_metadata && u.user_metadata.name) || (u.email || "").split("@")[0];
+    var ex = userExams();
+
+    if (ex.length === 0 || changing) {
+      if (!body.classList.contains("picking")) {
+        boxes.forEach(function (b) { b.checked = ex.indexOf(b.value) !== -1; });
+        $("examMsg").textContent = "";
+      }
+      $("pickHi").textContent = "Hi, " + nm + "!";
+      body.classList.add("locked", "picking");
+      updatePickBtn();
+    } else {
+      body.classList.remove("locked", "picking");
+      $("hello").textContent = "Hello, " + nm;
+      $("examText").textContent = "Preparing for: " + ex.join(", ");
+      $("examLine").hidden = false;
     }
   }
 
+  $("examForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var picks = chosen();
+    if (!picks.length || !sb || !session) return;
+
+    var wasChanging = changing;
+    $("examGo").disabled = true;
+    $("examMsg").className = "";
+    $("examMsg").textContent = "Saving…";
+    changing = false;
+
+    var r = await sb.auth.updateUser({ data: { exams: picks } });
+    if (r.error) {
+      changing = wasChanging;
+      $("examMsg").className = "err";
+      $("examMsg").textContent = r.error.message;
+      updatePickBtn();
+      return;
+    }
+
+    // Optional: also keep a copy in the profiles table (needs the "exams" column; ignored if missing)
+    try { await sb.from("profiles").update({ exams: picks }).eq("id", session.user.id); } catch (err) {}
+
+    var cur = await sb.auth.getSession();
+    session = cur.data.session;
+    showState();
+  });
+
+  $("changeExam").addEventListener("click", function () {
+    changing = true;
+    showState();
+    window.scrollTo(0, 0);
+  });
+
+  // ----- buttons and dialog -----
   btn.addEventListener("click", async function () {
     if (!sb) return alert("Login is not set up yet. Add your Supabase URL and key in index.html.");
     if (session) {
+      changing = false;
       await sb.auth.signOut();
     } else {
       setMode("login");
@@ -1166,6 +1517,13 @@
     if (!sb) return alert("Login is not set up yet. Add your Supabase URL and key in index.html.");
     setMode("login");
     if (!dlg.open) dlg.showModal();
+  });
+
+  $("togglePw").addEventListener("click", function () {
+    var show = $("authPass").type === "password";
+    $("authPass").type = show ? "text" : "password";
+    this.textContent = show ? "Hide" : "Show";
+    this.setAttribute("aria-label", show ? "Hide password" : "Show password");
   });
 
   $("authClose").addEventListener("click", function () { dlg.close(); });
@@ -1205,7 +1563,7 @@
     if (res.data && res.data.session) {
       $("authForm").reset();
       say("");
-      dlg.close();
+      if (dlg.open) dlg.close();
     } else {
       // Signup with email confirmation turned on: no session until the email is confirmed
       setMode("login");
