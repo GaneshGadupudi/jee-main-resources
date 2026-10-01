@@ -25,6 +25,7 @@
       --ok: #1a7f4b;
       --warn: #fff6e0;
       --warnb: #e8c766;
+      --err: #b3261e;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -39,6 +40,7 @@
         --ok: #5fd394;
         --warn: #2d2610;
         --warnb: #7a6420;
+        --err: #ff8a80;
       }
     }
 
@@ -339,6 +341,143 @@
       outline-offset: 2px;
     }
 
+    /* ---------- Login / Signup dialog ---------- */
+    #authDlg {
+      width: min(400px, 92vw);
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    #authDlg::backdrop {
+      background: rgba(0, 0, 0, .5);
+    }
+
+    #authDlg h2 {
+      font-size: 1.4rem;
+      margin: 0 0 4px;
+    }
+
+    #authDlg .sub {
+      margin: 0 0 16px;
+      color: var(--mute);
+    }
+
+    #authDlg .x {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: 0;
+      color: var(--mute);
+      font-size: 1.3rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 6px 10px;
+    }
+
+    #authDlg .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    #authDlg .tabs button {
+      flex: 1;
+      padding: 9px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+      border-radius: 8px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    #authDlg .tabs button.on {
+      background: var(--acc);
+      border-color: var(--acc);
+      color: var(--bg);
+    }
+
+    #authDlg label {
+      display: block;
+      font-size: .9rem;
+      margin: 12px 0 4px;
+    }
+
+    #authDlg input {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    #authDlg .go {
+      width: 100%;
+      margin-top: 18px;
+    }
+
+    #authDlg .go:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    #authMsg {
+      min-height: 1.4em;
+      margin: 12px 0 0;
+      font-size: .92rem;
+    }
+
+    #authMsg.err {
+      color: var(--err);
+    }
+
+    #authMsg.ok {
+      color: var(--ok);
+    }
+
+    #authDlg [hidden] {
+      display: none !important;
+    }
+
+    /* ---------- Login gate: page is hidden until the user logs in ---------- */
+    body.locked > header,
+    body.locked > section,
+    body.locked > footer,
+    body.locked nav ul,
+    body.locked nav a.btn,
+    body.locked .menu {
+      display: none !important;
+    }
+
+    #gate {
+      display: none;
+      text-align: center;
+      padding: 90px 18px;
+    }
+
+    body.locked #gate {
+      display: block;
+    }
+
+    #gate p {
+      color: var(--mute);
+      margin: 0 auto 20px;
+      max-width: 40ch;
+    }
+
+    #hello {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--acc);
+      margin: 0 0 6px;
+    }
+
     @media (max-width: 760px) {
       nav ul {
         display: none;
@@ -360,6 +499,11 @@
       nav .btn {
         display: none;
       }
+      nav #authBtn {
+        display: inline-block;
+        padding: 8px 14px;
+        font-size: .9rem;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -372,7 +516,7 @@
     }
   </style>
 </head>
-<body>
+<body class="locked">
 
 <nav>
   <div class="wrap">
@@ -386,13 +530,50 @@
       <li><a href="#resources">Resources</a></li>
       <li><a href="#about">About</a></li>
     </ul>
+    <button class="btn alt" id="authBtn" type="button">Log in</button>
     <a class="btn" href="#start">Start Preparing →</a>
     <button class="menu" aria-label="Menu" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
   </div>
 </nav>
 
+<!-- Login / Signup dialog -->
+<dialog id="authDlg" aria-labelledby="authTitle">
+  <button class="x" id="authClose" type="button" aria-label="Close">✕</button>
+  <h2 id="authTitle">Log in</h2>
+  <p class="sub" id="authSub">Welcome back. Enter your email and password.</p>
+
+  <div class="tabs">
+    <button type="button" id="tabLogin" class="on">Log in</button>
+    <button type="button" id="tabSignup">Sign up</button>
+  </div>
+
+  <form id="authForm" novalidate>
+    <div id="nameRow" hidden>
+      <label for="authName">Name</label>
+      <input id="authName" type="text" autocomplete="name">
+    </div>
+
+    <label for="authEmail">Email</label>
+    <input id="authEmail" type="email" autocomplete="email">
+
+    <label for="authPass" id="passLabel">Password</label>
+    <input id="authPass" type="password" autocomplete="current-password" minlength="6">
+
+    <button class="btn go" id="authGo" type="submit">Log in</button>
+    <p id="authMsg" role="status"></p>
+  </form>
+</dialog>
+
+<!-- Shown instead of the website until the user is logged in -->
+<div id="gate">
+  <h1>Log in to continue</h1>
+  <p>Create a free account or log in to access the JEE short notes.</p>
+  <button class="btn" id="gateBtn" type="button">Log in or sign up</button>
+</div>
+
 <header id="home" class="hero">
   <div class="wrap">
+    <p id="hello" aria-live="polite"></p>
     <h1>JEE Preparation, Simplified.</h1>
     <p class="lead">Free short notes, chapter-wise revision resources, PYQs, preparation strategies and useful resources for JEE Main & Advanced aspirants.</p>
     <a class="btn" href="#notes">Explore Notes</a>
@@ -764,19 +945,63 @@
 </footer>
 
 <script>
-  const B = 'https://ganeshgadupudi.github.io/JEE-Mains-short-notes/';
+  // PDFs live in the Notes folder, next to index.html (relative paths work on any repo name)
+  const B = 'Notes/';
   
   const CH = [
     ['Chemistry', 'Solutions', 'Class 12', '1-2 questions (approx., author note)', B + 'Solutions.pdf'],
     ['Chemistry', 'Metallurgy', 'Class 12', '1 question (approx., author note)', B + 'Metallurgy.pdf'],
     ['Chemistry', 'Chemical Bonding', 'Class 11', '2-3 questions (approx., author note)', B + 'Chemical%20bonding.pdf'],
-    ['Physics', 'Current Electricity', 'Class 12'],
+    ['Chemistry','Alkanes','Class 12','',B+'Alkanes.pdf'],
+    ['Chemistry','Alkenes','Class 12','',B+'ALKENE.pdf'],
+    ['Chemistry','Alkynes','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Aromaticity','Class 11','',B+'Aromaticity.pdf'],
+    ['Chemistry','Benzene','Class 11','',B+'Benzene (1).pdf'],
+    ['Chemistry','Chemical kinetics','Class 11','',B+'che.%20kinetics.pdf'],
+    ['Chemistry','Chemical Bonding','Class 11','',B+'Chemical%20bonding.pdf'],
+    ['Chemistry','Chemistry In Every Day Life','Class 11','',B+'Chemistry in every day life.pdf'],
+    ['Chemistry','Complex Compounds','Class 11','',B+'Complex%20compounds.pdf'],
+    ['Chemistry','D & F Blocks','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Electrochemistry','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Electromeric Effects','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Environmental chemistry','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Equllibrium','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Alkynes','Class 12','',B+'Alkyne.pdf'],
+    ['Chemistry','Alkynes','Class 12','',B+'Alkyne.pdf'],
+    ['Physics', 'Current Electricity', 'Class 12','',B + ''],
     ['Physics', 'Electrostatics', 'Class 12'],
     ['Physics', 'Thermodynamics', 'Class 11'],
     ['Physics', 'Optics', 'Class 12'],
+    ['Physics', 'Collisions', 'Class 12','',B + 'Collisions.pdf'],
+    ['Physics', 'Center Of Mass', 'Class 12','',B + 'COM.pdf'],
+    ['Physics', 'Alternating Current', 'Class 12','',B + 'A.current.pdf'],
+    ['Physics', 'Atomic Physics', 'Class 12','',B + 'Atomic%20physics.pdf'],
+    ['Physics', 'Atomic Structures', 'Class 12','',B + 'Atomic%20structure.pdf'],
+    ['Physics', 'Calorimetry', 'Class 12','',B + 'calorimetry.pdf'],
+    ['Physics', 'Current Electricity', 'Class 12','',B + 'Current%20electricity.pdf'],
+    ['Physics', 'Dual Nature', 'Class 12','',B + 'Collisions.pdf'],
+    ['Physics', 'Electromagnetic Waves', 'Class 12','',B + 'Electromagnetic waves.pdf'],
+    ['Physics', 'Electrostatics', 'Class 12','',B + 'Electrostatics.pdf'],
+    ['Physics', 'EMI', 'Class 12','',B + 'EMI.pdf'],
+    ['Physics', 'Expansion of Liquids', 'Class 12','',B + 'exp.of%20liquids.pdf'],
+    ['Physics', 'Expansion of Gases', 'Class 12','',B + 'exp.%20of%20gases.pdf'],
     ['Mathematics', 'Calculus', 'Class 12'],
     ['Mathematics', 'Coordinate Geometry', 'Class 11'],
-    ['Mathematics', 'Vectors & 3D', 'Class 12']
+    ['Mathematics', '2D Geometry', 'Class 12','', B + '2d%20geometry.pdf'],
+    ['Mathematics', '3D Geometry', 'Class 12','', B + '3d%20geo.pdf'],
+    ['Mathematics', 'Areas', 'Class 11','',B + 'areas.pdf'],
+    ['Mathematics', 'Binomial Theorem', 'Class 12','',B + 'binomial%20the..pdf'],
+    ['Mathematics', 'Complex Numbers', 'Class 11','',B + 'complex%20no.pdf'],
+    ['Mathematics', 'Conics', 'Class 11','',B + 'conics.pdf'],
+    ['Mathematics', 'Continuity and Differentiability', 'Class 11','',B + 'conti&%20diff..pdf'],
+    ['Mathematics', 'Diffrential equations', 'Class 11','',B + 'd.eqn.pdf'],
+    ['Mathematics', 'Diffrential Integrations', 'Class 11','',B + 'circles.pdf'],
+    ['Mathematics', 'Diffrentiation', 'Class 11','',B + 'circles.pdf'],
+    ['Mathematics', 'Ellipse', 'Class 11','',B + 'circles.pdf'],
+    ['Mathematics', 'Circles', 'Class 11','',B + 'circles.pdf'],
+    ['Mathematics', 'Circles', 'Class 11','',B + 'circles.pdf'],
+    ['Mathematics', 'Applications Of Derivatives', 'Class 12','',B + 'A.O.D.pdf'],
+
   ];
 
   const ST = ['Not Started', 'Learning', 'Practicing', 'Revised', 'Strong'];
@@ -872,6 +1097,133 @@
     }
     document.getElementById('qr').innerHTML = results;
   });
+</script>
+
+<!-- ================= Supabase login / signup ================= -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  // >>> REPLACE THESE TWO VALUES (Supabase → Project Settings → API). Use the anon/public key only. <<<
+  var SUPABASE_URL = "https://bhrwxpiozrsobvbvpefz.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_x-KKTk9DTPWNfUEIr_tJpw_MEktf6Oa";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var dlg = $("authDlg"), btn = $("authBtn"), msg = $("authMsg");
+  var mode = "login", session = null, sb = null;
+
+  try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) {
+    console.error("Supabase not configured:", e);
+  }
+
+  function say(text, type) {
+    msg.textContent = text;
+    msg.className = type || "";
+  }
+
+  function setMode(m) {
+    mode = m;
+    var signup = m === "signup";
+    $("tabLogin").classList.toggle("on", !signup);
+    $("tabSignup").classList.toggle("on", signup);
+    $("nameRow").hidden = !signup;
+    $("authTitle").textContent = signup ? "Create your account" : "Log in";
+    $("authSub").textContent = signup ? "Sign up with your name, email and a password." : "Welcome back. Enter your email and password.";
+    $("passLabel").textContent = signup ? "Set a password" : "Password";
+    $("authPass").autocomplete = signup ? "new-password" : "current-password";
+    $("authGo").textContent = signup ? "Create account" : "Log in";
+    say("");
+  }
+
+  function showState() {
+    if (session) {
+      var u = session.user;
+      var nm = (u.user_metadata && u.user_metadata.name) || (u.email || "").split("@")[0];
+      btn.textContent = "Log out";
+      $("hello").textContent = "Hello, " + nm;
+      document.body.classList.remove("locked");
+      if (dlg.open) dlg.close();
+    } else {
+      btn.textContent = "Log in";
+      $("hello").textContent = "";
+      document.body.classList.add("locked");
+      if (sb && !dlg.open) { setMode("login"); dlg.showModal(); }
+    }
+  }
+
+  btn.addEventListener("click", async function () {
+    if (!sb) return alert("Login is not set up yet. Add your Supabase URL and key in index.html.");
+    if (session) {
+      await sb.auth.signOut();
+    } else {
+      setMode("login");
+      dlg.showModal();
+    }
+  });
+
+  $("gateBtn").addEventListener("click", function () {
+    if (!sb) return alert("Login is not set up yet. Add your Supabase URL and key in index.html.");
+    setMode("login");
+    if (!dlg.open) dlg.showModal();
+  });
+
+  $("authClose").addEventListener("click", function () { dlg.close(); });
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  $("tabLogin").addEventListener("click", function () { setMode("login"); });
+  $("tabSignup").addEventListener("click", function () { setMode("signup"); });
+
+  $("authForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (!sb) return say("Login is not set up yet.", "err");
+
+    var name = $("authName").value.trim();
+    var email = $("authEmail").value.trim();
+    var pass = $("authPass").value;
+
+    if (mode === "signup" && !name) return say("Enter your name.", "err");
+    if (!email) return say("Enter your email.", "err");
+    if (pass.length < 6) return say("Password must be at least 6 characters.", "err");
+
+    $("authGo").disabled = true;
+    say(mode === "signup" ? "Creating your account…" : "Logging in…");
+
+    var res;
+    if (mode === "signup") {
+      res = await sb.auth.signUp({
+        email: email,
+        password: pass,
+        options: { data: { name: name }, emailRedirectTo: location.origin + location.pathname }
+      });
+    } else {
+      res = await sb.auth.signInWithPassword({ email: email, password: pass });
+    }
+    $("authGo").disabled = false;
+
+    if (res.error) return say(res.error.message, "err");
+
+    if (res.data && res.data.session) {
+      $("authForm").reset();
+      say("");
+      dlg.close();
+    } else {
+      // Signup with email confirmation turned on: no session until the email is confirmed
+      setMode("login");
+      say("Account created. Check your email to confirm it, then log in.", "ok");
+    }
+  });
+
+  if (sb) {
+    sb.auth.getSession().then(function (r) {
+      session = r.data.session;
+      showState();
+    });
+    sb.auth.onAuthStateChange(function (_event, s) {
+      session = s;
+      showState();
+    });
+  }
+})();
 </script>
 </body>
 </html>

@@ -1,1 +1,0 @@
-# jee-main-resources
