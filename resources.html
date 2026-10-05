@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resources | JEE Compass</title>
+  <meta name="description" content="Chapter-wise short notes for Physics, Chemistry and Mathematics.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-protected>
+<main>
+  <section class="section">
+    <div class="wrap">
+      <h1>Resources</h1>
+
+      <!-- Shown to visitors who are not logged in -->
+      <div id="gate">
+        <div class="card" style="max-width:520px">
+          <div class="ic">🔒</div>
+          <h3>Log in to open the notes</h3>
+          <p>Chapter-wise short notes for Physics, Chemistry and Mathematics are free for logged-in students.</p>
+          <p style="margin-top:16px"><a class="btn" href="login.html">Log in</a> <a class="btn ghost" href="signup.html">Sign up</a></p>
+        </div>
+      </div>
+
+      <!-- Shown after login -->
+      <div id="app" hidden>
+        <p class="lead">Handwritten short notes. The number shows approximately how many questions come from the chapter (author's estimate, not official).</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:20px 0">
+          <input id="search" type="search" placeholder="Search chapters" aria-label="Search chapters" style="flex:1 1 240px">
+          <select id="subject" aria-label="Subject" style="flex:0 0 180px">
+            <option>All</option><option>Physics</option><option>Chemistry</option><option>Mathematics</option>
+          </select>
+        </div>
+        <div class="grid" id="list" style="margin-top:0"></div>
+        <p id="empty" class="lead" hidden>No chapters match your search.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="assets/data/resources-data.js"></script>
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+  (function () {
+    var list = document.getElementById("list");
+    var search = document.getElementById("search");
+    var subject = document.getElementById("subject");
+
+    function esc(t) {
+      return t.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+    }
+
+    function render() {
+      var q = search.value.trim().toLowerCase();
+      var html = "", shown = 0;
+      Object.keys(DATA).forEach(function (sub) {
+        if (subject.value !== "All" && subject.value !== sub) return;
+        DATA[sub].forEach(function (line) {
+          var p = line.split("|");
+          if (q && p[0].toLowerCase().indexOf(q) === -1) return;
+          shown++;
+          var link = p[2]
+            ? '<a class="btn" href="' + encodeURI(NOTES_FOLDER + p[2]) + '" target="_blank" rel="noopener">Open PDF</a>'
+            : '<span class="badge">Coming soon</span>';
+          html += '<div class="card"><span class="badge">' + sub + '</span>' +
+            '<h3 style="margin-top:12px">' + esc(p[0]) + '</h3>' +
+            '<p style="margin-bottom:14px">About ' + esc(p[1]) + ' questions</p>' + link + '</div>';
+        });
+      });
+      list.innerHTML = html;
+      document.getElementById("empty").hidden = shown > 0;
+    }
+
+    search.addEventListener("input", render);
+    subject.addEventListener("change", render);
+    render();
+  })();
+</script>
+</body>
+</html>

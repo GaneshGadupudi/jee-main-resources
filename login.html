@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in | JEE Preparation Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-guest-only>
+<main>
+  <section class="section">
+    <div class="wrap" style="max-width:440px">
+      <div class="card">
+        <h1 style="font-size:2rem">Welcome back</h1>
+        <p class="lead" style="font-size:1rem">Log in to open your resources.</p>
+        <button class="btn ghost block" id="googleBtn" type="button">Continue with Google</button>
+        <p class="center" style="color:var(--muted);margin:16px 0 0">or use your email</p>
+        <form id="authForm" data-mode="login" novalidate>
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password">
+          <p style="text-align:right;margin:8px 0 0"><button class="linkbtn" id="forgot" type="button">Forgot password?</button></p>
+          <button class="btn block" id="go" type="submit" style="margin-top:12px">Log in</button>
+          <p id="msg" class="msg" role="status"></p>
+        </form>
+        <p class="center" style="margin:0">New here? <a href="signup.html">Create an account</a></p>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/auth.js"></script>
+</body>
+</html>
