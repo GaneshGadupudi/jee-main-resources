@@ -151,3 +151,18 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 .pw-eye:hover { opacity: 1; }
 .welcome { color: var(--muted); font-weight: 600; font-size: .92rem; }
 @media (max-width: 860px) { .welcome { display: none; } }
+.onboarding-card { max-width: 640px !important; }
+.onboarding-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; margin-top: 8px; }
+.onboarding-card label:not(.opt) { color: var(--text); }
+.onboarding-card input[type="date"] { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; color-scheme: dark; }
+.onboarding-card input[type="date"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent); }
+.onboarding-subjects { display: flex; flex-wrap: wrap; gap: 9px 17px; margin: 17px 0 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.onboarding-subjects legend { padding: 0 5px; color: var(--text); font-size: .78rem; font-weight: 700; }
+.onboarding-subjects legend span { color: var(--muted); font-size: .68rem; font-weight: 500; }
+.onboarding-subjects label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: .75rem; cursor: pointer; }
+.onboarding-subjects input { accent-color: var(--primary); }
+:root[data-theme="light"] .onboarding-card input[type="date"] { color-scheme: light; }
+@media (max-width: 600px) {
+  .onboarding-fields { grid-template-columns: 1fr; gap: 0; }
+  .onboarding-subjects { gap: 10px 13px; }
+}

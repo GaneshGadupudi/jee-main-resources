@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student dashboard | JEE Preparation Platform</title>
+  <meta name="description" content="Your personalised JEE study plan, daily practice, test preparation and progress.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body data-protected class="dashboard-page">
+<main>
+  <div id="gate" class="section">
+    <div class="wrap">
+      <div class="card dashboard-gate">
+        <span class="eyebrow">YOUR STUDY SPACE</span>
+        <h1 class="dashboard-title">Your preparation, in one place.</h1>
+        <p class="lead">Log in to open your personal dashboard, daily plan and progress.</p>
+        <div class="cta-row">
+          <a class="btn" href="login.html">Log in</a>
+          <a class="btn ghost" href="signup.html">Create an account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="dashboard-layout" hidden>
+    <aside class="dashboard-sidebar" aria-label="Student dashboard">
+      <a class="dashboard-brand" href="dashboard.html"><span class="brand-mark">J</span><span>JEE<span class="brand-soft">COMPASS</span></span></a>
+      <p class="sidebar-label">YOUR WORKSPACE</p>
+      <nav class="side-links" aria-label="Dashboard sections">
+        <button type="button" class="side-link active" data-view="overview"><span class="side-icon">⌂</span>Overview</button>
+        <button type="button" class="side-link" data-view="study-plan"><span class="side-icon">▤</span>Study plan</button>
+        <button type="button" class="side-link" data-view="practice"><span class="side-icon">✳</span>Daily practice</button>
+        <button type="button" class="side-link" data-view="mock-tests"><span class="side-icon">◷</span>Mock tests<span class="nav-tag">SOON</span></button>
+        <button type="button" class="side-link" data-view="challenge"><span class="side-icon">♛</span>Weekly challenge<span class="nav-tag">SOON</span></button>
+        <button type="button" class="side-link" data-view="live-sessions"><span class="side-icon">◉</span>Live sessions<span class="nav-tag">PLANNING</span></button>
+        <button type="button" class="side-link" data-view="mistakes"><span class="side-icon">↺</span>Mistake book</button>
+        <button type="button" class="side-link" data-view="progress"><span class="side-icon">▥</span>Progress</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button type="button" class="side-link" data-view="profile"><span class="side-icon">◎</span>My profile</button>
+        <div class="sidebar-note"><span class="note-spark">✦</span><p><strong>Small steps count.</strong><br>Show up for today's plan.</p></div>
+      </div>
+    </aside>
+
+    <div class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div class="breadcrumb">Workspace <span>/</span> <strong id="currentViewLabel">Overview</strong></div>
+        <div class="topbar-actions">
+          <span class="today-date" id="todayDate"></span>
+          <button class="avatar-button" type="button" data-open-profile aria-label="Open your profile"><span id="avatarInitial">S</span></button>
+        </div>
+      </header>
+      <div id="storageNotice" class="storage-notice" role="status" hidden></div>
+
+      <div class="dashboard-content">
+        <section class="dashboard-view" data-panel="overview">
+          <div class="welcome-row">
+            <div><span class="eyebrow" id="greeting">YOUR STUDY SPACE</span><h1 class="dashboard-title">Let's make today count, <span id="studentName">student</span>.</h1><p class="dashboard-subtitle">A little focused progress today goes a long way.</p></div>
+            <button type="button" class="btn" data-open-view="study-plan">View today's plan <span aria-hidden="true">→</span></button>
+          </div>
+
+          <div class="countdown-banner">
+            <div class="countdown-copy"><span class="countdown-icon">◷</span><div><span class="eyebrow">YOUR NEXT EXAM</span><h2 id="countdownExam">Set your exam date</h2><p id="countdownCaption">Add your target date to see your countdown and personalise your plan.</p></div></div>
+            <div class="countdown-number"><strong id="daysLeft">—</strong><span>days to go</span></div>
+            <button class="countdown-edit" type="button" data-open-profile aria-label="Set your exam date">↗</button>
+          </div>
+
+          <div class="stats-grid" aria-label="Your preparation at a glance">
+            <article class="stat-card"><span class="stat-icon stat-violet">✓</span><div><span class="stat-label">Plan completed</span><strong class="stat-value" id="planStat">0%</strong><span class="stat-hint" id="planStatHint">Today's tasks</span></div></article>
+            <article class="stat-card"><span class="stat-icon stat-cyan">✳</span><div><span class="stat-label">Questions today</span><strong class="stat-value" id="questionStat">0</strong><span class="stat-hint" id="accuracyStatHint">Start your daily practice</span></div></article>
+            <article class="stat-card"><span class="stat-icon stat-amber">♨</span><div><span class="stat-label">Study streak</span><strong class="stat-value"><span id="streakStat">0</span><small> days</small></strong><span class="stat-hint">One day at a time</span></div></article>
+            <article class="stat-card"><span class="stat-icon stat-rose">◎</span><div><span class="stat-label">Mistakes to revisit</span><strong class="stat-value" id="mistakeStat">0</strong><span class="stat-hint">Your personal revision list</span></div></article>
+          </div>
+
+          <div class="overview-grid">
+            <article class="panel plan-panel">
+              <div class="panel-heading"><div><span class="eyebrow">YOUR PERSONAL PLAN</span><h2>Today's study plan</h2></div><button type="button" class="text-action" data-open-view="study-plan">See all <span aria-hidden="true">→</span></button></div>
+              <div id="overviewTasks" class="task-list"></div>
+              <div class="plan-footer"><div class="progress-track"><span id="planProgressBar"></span></div><span id="planProgressLabel">0 of 0 complete</span></div>
+            </article>
+
+            <article class="panel practice-panel">
+              <div class="panel-heading"><div><span class="eyebrow">DAILY PRACTICE</span><h2>Problems of the day</h2></div><span class="live-dot">TODAY</span></div>
+              <p class="panel-description">A focused set across Physics, Chemistry and Mathematics, with explanations to learn from every answer.</p>
+              <div class="subject-chips"><span class="subject-chip physics-chip"><i></i>Physics <b>5</b></span><span class="subject-chip chemistry-chip"><i></i>Chemistry <b>5</b></span><span class="subject-chip maths-chip"><i></i>Maths <b>5</b></span></div>
+              <div class="practice-meta"><span>15 questions</span><span>·</span><span>About 25 min</span></div>
+              <button type="button" class="btn practice-start" data-open-view="practice">Start daily practice <span aria-hidden="true">→</span></button>
+            </article>
+          </div>
+
+          <div class="overview-grid lower-grid">
+            <article class="panel week-panel">
+              <div class="panel-heading"><div><span class="eyebrow">WEEKLY CHALLENGE</span><h2>Your weekend checkpoint</h2></div><span class="challenge-icon">♛</span></div>
+              <p class="panel-description">A common, timed challenge for participating students. Your score, rank and percentile appear here after a challenge opens.</p>
+              <div class="challenge-details"><span>Physics <b>25</b></span><span>Chemistry <b>25</b></span><span>Maths <b>25</b></span><strong>Total <b>75 questions</b></strong></div>
+              <button type="button" class="btn ghost" data-open-view="challenge">Explore challenge <span aria-hidden="true">→</span></button>
+            </article>
+            <article class="panel insight-panel">
+              <div class="panel-heading"><div><span class="eyebrow">YOUR NEXT STEP</span><h2>Keep your momentum</h2></div><span class="insight-icon">✦</span></div>
+              <p class="insight-quote">“Consistency beats long, random hours.”</p>
+              <p class="panel-description">Complete a study task or try today's practice to start building a picture of your progress.</p>
+              <button type="button" class="text-action" data-open-view="progress">View my progress <span aria-hidden="true">→</span></button>
+            </article>
+          </div>
+          <p class="local-note">Practice answers and study-task progress are saved in this browser on this device.</p>
+        </section>
+
+        <section class="dashboard-view" data-panel="study-plan" hidden>
+          <div class="page-heading"><div><span class="eyebrow">PLAN YOUR PREPARATION</span><h1 class="dashboard-title">Today's study plan</h1><p class="dashboard-subtitle" id="planIntro">A clear, manageable next step for each part of your preparation.</p></div><span class="page-date" id="planDate"></span></div>
+          <div class="panel plan-panel full-panel"><div class="panel-heading"><div><span class="eyebrow">DAILY TASKS</span><h2>Focus for today</h2></div><span class="task-count" id="planTaskCount"></span></div><div id="fullTasks" class="task-list"></div><div class="plan-footer"><div class="progress-track"><span id="fullPlanProgressBar"></span></div><span id="fullPlanProgressLabel">0 of 0 complete</span></div></div>
+          <div class="callout"><span>✦</span><p><strong>Make the plan yours.</strong> Your exam date, available hours and strong or weak subjects help shape what you work on next.</p><button type="button" class="text-action" data-open-profile>Edit preferences →</button></div>
+        </section>
+
+        <section class="dashboard-view" data-panel="practice" hidden>
+          <div class="page-heading"><div><span class="eyebrow">BUILD YOUR DAILY HABIT</span><h1 class="dashboard-title">Problems of the day</h1><p class="dashboard-subtitle">15 original starter questions: five each in Physics, Chemistry and Mathematics.</p></div><span class="live-dot">TODAY</span></div>
+          <div class="practice-workspace">
+            <article class="panel question-panel"><div class="question-topline"><span id="questionSubject" class="question-subject">PHYSICS</span><span id="questionCounter">Question 1 of 15</span></div><div class="question-progress"><span id="questionProgress"></span></div><div class="subject-switcher" role="group" aria-label="Switch practice subject"><button type="button" data-subject-switch="Physics" aria-pressed="true">Physics</button><button type="button" data-subject-switch="Chemistry" aria-pressed="false">Chemistry</button><button type="button" data-subject-switch="Mathematics" aria-pressed="false">Mathematics</button></div><p id="questionChapter" class="question-chapter"></p><h2 id="questionText" class="question-text"></h2><div id="answerOptions" class="answer-options"></div><div id="answerFeedback" class="answer-feedback" hidden></div><div class="question-controls"><button type="button" id="previousQuestion" class="btn ghost">← Previous</button><span id="answeredLabel" class="answered-label">0 answered</span><button type="button" id="nextQuestion" class="btn" disabled>Check answer</button></div></article>
+            <aside class="panel practice-sidebar"><span class="eyebrow">TODAY'S SESSION</span><strong class="session-number"><span id="sessionAnswered">0</span><small> / 15 answered</small></strong><div class="subject-progress-list"><div><span class="subject-dot physics-dot"></span>Physics <b id="physicsAnswered">0 / 5</b></div><div><span class="subject-dot chemistry-dot"></span>Chemistry <b id="chemistryAnswered">0 / 5</b></div><div><span class="subject-dot maths-dot"></span>Mathematics <b id="mathsAnswered">0 / 5</b></div></div><p class="panel-description">Take your time. Read each explanation—even when you get it right.</p><button type="button" id="restartPractice" class="text-action">Review this set from the start ↺</button></aside>
+          </div>
+        </section>
+
+        <section class="dashboard-view" data-panel="mock-tests" hidden><div class="page-heading"><div><span class="eyebrow">PRACTISE UNDER PRESSURE</span><h1 class="dashboard-title">Mock tests</h1><p class="dashboard-subtitle">Build exam-day confidence with timed, full-length practice and detailed review.</p></div></div><div class="panel exam-preferences-panel"><span class="eyebrow">YOUR EXAM PREFERENCES</span><h2>Mock tests for the exams you selected</h2><div id="mockExamPreferences" class="exam-preference-list" aria-live="polite"></div></div><div class="panel empty-panel"><span class="empty-icon">◷</span><span class="eyebrow">TEST LIBRARY</span><h2>Your mock-test library is getting ready</h2><p>Timed tests need a verified question bank and scoring rules. No made-up scores or test results will appear here.</p><div class="feature-pills"><span>Question navigation</span><span>Mark for review</span><span>Subject analysis</span><span>Chapter analysis</span><span>Time analysis</span></div><button type="button" class="btn ghost" data-open-view="practice">Try today's practice instead →</button></div></section>
+
+        <section class="dashboard-view" data-panel="challenge" hidden><div class="page-heading"><div><span class="eyebrow">LEARN ALONGSIDE OTHER ASPIRANTS</span><h1 class="dashboard-title">Weekly Challenge</h1><p class="dashboard-subtitle">A shared weekend checkpoint across your selected exams.</p></div><span class="challenge-icon large-challenge-icon">♛</span></div><div class="challenge-page-grid"><article class="panel challenge-summary"><span class="eyebrow">YOUR EXAM PREFERENCES</span><h2>Challenge updates for your selected exams</h2><div id="challengeExamPreferences" class="exam-preference-list" aria-live="polite"></div><span class="eyebrow">CHALLENGE FORMAT</span><h2>One test. A clearer picture.</h2><p class="panel-description">Each weekend challenge is the same for participating students during a defined test window.</p><div class="challenge-details"><span>Physics <b>25 questions</b></span><span>Chemistry <b>25 questions</b></span><span>Mathematics <b>25 questions</b></span><strong>Total <b>75 questions</b></strong></div><div class="feature-pills"><span>Score</span><span>Rank</span><span>Percentile</span><span>Accuracy</span><span>Subject performance</span></div></article><article class="panel empty-panel compact-empty"><span class="empty-icon">♛</span><span class="eyebrow">NEXT CHALLENGE</span><h2>No challenge is open yet</h2><p>The leaderboard will appear when the first shared challenge is available. Your rank will never be guessed or fabricated.</p></article></div></section>
+
+        <section class="dashboard-view" data-panel="live-sessions" hidden><div class="page-heading"><div><span class="eyebrow">LEARN FROM STUDENTS WHO'VE BEEN THERE</span><h1 class="dashboard-title">Live sessions</h1><p class="dashboard-subtitle">Online conversations and Q&amp;A with students from IITs, NITs and IIITs are being planned.</p></div><span class="live-session-status">IN PLANNING</span></div><article class="panel live-sessions-panel"><span class="live-session-icon" aria-hidden="true">◉</span><span class="eyebrow">COMING SOON</span><h2>Real experiences. Practical guidance.</h2><p class="panel-description">We’re working towards live online sessions where current students from IITs, NITs and IIITs can share their experiences and answer your questions about preparation and campus life.</p><p class="live-session-note">Session dates, speakers and joining details will be shared once confirmed.</p></article></section>
+
+        <section class="dashboard-view" data-panel="mistakes" hidden><div class="page-heading"><div><span class="eyebrow">TURN WRONG ANSWERS INTO LEARNING</span><h1 class="dashboard-title">Your mistake book</h1><p class="dashboard-subtitle">Questions you miss in daily practice are saved here for another look.</p></div><span class="mistake-page-count"><strong id="mistakePageCount">0</strong> saved</span></div><div id="mistakeList" class="mistake-list"></div><div id="mistakeEmpty" class="panel empty-panel"><span class="empty-icon">↺</span><span class="eyebrow">A SPACE TO LEARN</span><h2>No saved mistakes yet</h2><p>When you miss a daily practice question, it will be added here with its explanation. Getting something wrong is a chance to learn it for good.</p><button type="button" class="btn ghost" data-open-view="practice">Start daily practice →</button></div></section>
+
+        <section class="dashboard-view" data-panel="progress" hidden><div class="page-heading"><div><span class="eyebrow">YOUR PREPARATION, OVER TIME</span><h1 class="dashboard-title">Progress & insights</h1><p class="dashboard-subtitle">A useful picture built from your real practice and study-task activity.</p></div></div><div class="progress-overview-grid"><article class="stat-card"><span class="stat-icon stat-cyan">✳</span><div><span class="stat-label">Questions answered</span><strong class="stat-value" id="progressQuestions">0</strong><span class="stat-hint">Across your practice sessions</span></div></article><article class="stat-card"><span class="stat-icon stat-violet">◎</span><div><span class="stat-label">Practice accuracy</span><strong class="stat-value" id="progressAccuracy">—</strong><span class="stat-hint">Calculated from answered questions</span></div></article><article class="stat-card"><span class="stat-icon stat-amber">✓</span><div><span class="stat-label">Study tasks done</span><strong class="stat-value" id="progressTasks">0</strong><span class="stat-hint">Marked complete on this device</span></div></article></div><div class="panel insights-panel"><span class="eyebrow">A NOTE ON YOUR DATA</span><h2 id="insightTitle">Your first insight starts with your first answer.</h2><p id="insightText" class="panel-description">Complete some daily practice to reveal your accuracy, subject breakdown and topics to revisit. We only show insights based on your real answers.</p><div id="subjectInsights" class="insight-subject-grid"></div></div><div class="panel achievements-panel"><div class="panel-heading"><div><span class="eyebrow">MILESTONES THAT MEAN SOMETHING</span><h2>Your achievements</h2></div><span class="achievement-spark">✦</span></div><div id="achievementList" class="achievement-list"></div></div><p class="local-note">Your practice history is stored locally in this browser on this device; it isn't synced to your account.</p></section>
+
+        <section class="dashboard-view" data-panel="profile" hidden><div class="page-heading"><div><span class="eyebrow">MAKE THIS SPACE YOURS</span><h1 class="dashboard-title">Your student profile</h1><p class="dashboard-subtitle">A few details help shape a preparation plan that fits your real day.</p></div></div><div class="panel profile-panel"><form id="profileForm" class="profile-form"><div class="profile-form-heading"><span class="avatar-large" id="profileInitial">S</span><div><h2 id="profileName">Student</h2><p id="profileEmail" class="panel-description"></p></div></div><div class="profile-fields"><div><label for="targetExam">Target examination</label><select id="targetExam" name="targetExam"><option value="JEE Main">JEE Main</option><option value="JEE Advanced">JEE Advanced</option><option value="EAMCET">EAMCET</option></select></div><div class="target-date-field"><label for="examDate">Target exam date</label><div class="date-input-wrap"><span aria-hidden="true">▦</span><input id="examDate" name="examDate" type="date"></div><small>We’ll use this date for your countdown and study plan.</small></div><div><label for="prepStage">Preparation stage</label><select id="prepStage" name="prepStage"><option value="">Choose your stage</option><option>Class 11</option><option>Class 12</option><option>Dropper</option><option>Other</option></select></div><div><label for="dailyHours">Study hours available per day</label><select id="dailyHours" name="dailyHours"><option value="">Choose available hours</option><option value="1">1 hour</option><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option><option value="5">5 hours</option><option value="6">6+ hours</option></select></div></div><fieldset class="profile-subjects exam-preferences"><legend>Which exams would you like to prepare for?</legend><label><input type="checkbox" name="exams" value="JEE Main">JEE Main</label><label><input type="checkbox" name="exams" value="JEE Advanced">JEE Advanced</label><label><input type="checkbox" name="exams" value="EAMCET">EAMCET</label></fieldset><fieldset class="profile-subjects"><legend>Which subjects feel strongest?</legend><label><input type="checkbox" name="strongSubjects" value="Physics">Physics</label><label><input type="checkbox" name="strongSubjects" value="Chemistry">Chemistry</label><label><input type="checkbox" name="strongSubjects" value="Mathematics">Mathematics</label></fieldset><fieldset class="profile-subjects"><legend>Which subjects would you like to work on?</legend><label><input type="checkbox" name="weakSubjects" value="Physics">Physics</label><label><input type="checkbox" name="weakSubjects" value="Chemistry">Chemistry</label><label><input type="checkbox" name="weakSubjects" value="Mathematics">Mathematics</label></fieldset><div><label for="prepGoal">One goal you are working towards</label><input id="prepGoal" name="prepGoal" type="text" maxlength="120" placeholder="e.g. Finish electrostatics revision this month"></div><p id="profileMessage" class="msg" role="status"></p><button type="submit" id="saveProfile" class="btn">Save my preferences</button></form></div><p class="local-note">Your profile preferences are saved to your account. Study activity on this device remains in your browser.</p></section>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="assets/js/layout.js"></script>
+<script src="assets/js/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/dashboard.js"></script>
+</body>
+</html>

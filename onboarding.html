@@ -13,17 +13,37 @@
 <body data-needs-login>
 <main>
   <section class="section">
-    <div class="wrap" style="max-width:520px">
-      <div class="card">
+    <div class="wrap" style="max-width:680px">
+      <div class="card onboarding-card">
         <p id="hi" style="color:var(--accent);font-weight:700;margin-bottom:4px"></p>
-        <h1 style="font-size:2rem">Which exam are you preparing for?</h1>
-        <p class="lead" style="font-size:1rem">Choose one or more. You can change this later.</p>
+        <h1 style="font-size:2rem">Let's make your plan yours.</h1>
+        <p class="lead" style="font-size:1rem">Tell us what you are preparing for and what your study days look like.</p>
         <form id="examForm">
           <div style="display:grid;gap:12px">
             <label class="opt"><input type="checkbox" name="exam" value="JEE Main"><span><b>JEE Main</b><small>NITs, IIITs and the qualifier for JEE Advanced</small></span></label>
             <label class="opt"><input type="checkbox" name="exam" value="JEE Advanced"><span><b>JEE Advanced</b><small>Admission to the IITs</small></span></label>
             <label class="opt"><input type="checkbox" name="exam" value="EAMCET"><span><b>EAMCET</b><small>State engineering entrance (Telangana and Andhra Pradesh)</small></span></label>
           </div>
+          <div class="onboarding-fields">
+            <div><label for="targetExam">Main target exam</label><select id="targetExam" required><option value="JEE Main">JEE Main</option><option value="JEE Advanced">JEE Advanced</option><option value="EAMCET">EAMCET</option></select></div>
+            <div><label for="examDate">Target exam date</label><input id="examDate" type="date" required></div>
+            <div><label for="prepStage">Class or preparation stage</label><select id="prepStage" required><option value="">Choose your stage</option><option>Class 11</option><option>Class 12</option><option>Dropper</option><option>Other</option></select></div>
+            <div><label for="dailyHours">Study hours available each day</label><select id="dailyHours" required><option value="">Choose available hours</option><option value="1">1 hour</option><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option><option value="5">5 hours</option><option value="6">6+ hours</option></select></div>
+          </div>
+          <fieldset class="onboarding-subjects">
+            <legend>Which subjects feel strongest? <span>Optional</span></legend>
+            <label><input type="checkbox" name="strongSubject" value="Physics">Physics</label>
+            <label><input type="checkbox" name="strongSubject" value="Chemistry">Chemistry</label>
+            <label><input type="checkbox" name="strongSubject" value="Mathematics">Mathematics</label>
+          </fieldset>
+          <fieldset class="onboarding-subjects">
+            <legend>Which subjects would you like to work on? <span>Optional</span></legend>
+            <label><input type="checkbox" name="weakSubject" value="Physics">Physics</label>
+            <label><input type="checkbox" name="weakSubject" value="Chemistry">Chemistry</label>
+            <label><input type="checkbox" name="weakSubject" value="Mathematics">Mathematics</label>
+          </fieldset>
+          <label for="prepGoal">One preparation goal <span style="color:var(--muted);font-weight:500">(optional)</span></label>
+          <input id="prepGoal" type="text" maxlength="120" placeholder="e.g. Finish electrostatics revision this month">
           <button class="btn block" id="examGo" type="submit" style="margin-top:20px" disabled>Continue</button>
           <p id="msg" class="msg" role="status"></p>
         </form>

@@ -37,7 +37,7 @@
 
   async function route(user) {
     var ex = await getExams(user);
-    location.replace(ex.length ? "index.html" : "onboarding.html");
+    location.replace(ex.length ? "dashboard.html" : "onboarding.html");
   }
 
   function navState(on, user) {
@@ -61,6 +61,20 @@
       if ($("hi")) $("hi").textContent = "Hi, " + nameOf(session.user) + "!";
       var cur = await getExams(session.user);
       document.querySelectorAll('input[name="exam"]').forEach(function (b) { b.checked = cur.indexOf(b.value) !== -1; });
+      var studentProfile = (session.user.user_metadata || {}).student_profile || {};
+      if ($("targetExam")) $("targetExam").value = studentProfile.targetExam || cur[0] || "JEE Main";
+      if ($("examDate")) {
+        var today = new Date();
+        $("examDate").min = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+        $("examDate").value = studentProfile.examDate || "";
+      }
+      if ($("prepStage")) $("prepStage").value = studentProfile.prepStage || "";
+      if ($("dailyHours")) $("dailyHours").value = studentProfile.dailyHours || "";
+      if ($("prepGoal")) $("prepGoal").value = studentProfile.prepGoal || "";
+      ["strongSubject", "weakSubject"].forEach(function (field) {
+        var selected = studentProfile[field === "strongSubject" ? "strongSubjects" : "weakSubjects"] || [];
+        document.querySelectorAll('input[name="' + field + '"]').forEach(function (b) { b.checked = selected.indexOf(b.value) !== -1; });
+      });
       if ($("examGo")) $("examGo").disabled = cur.length === 0;
     }
     if (body.hasAttribute("data-protected")) {
@@ -154,6 +168,26 @@
       var exams = picked();
       var s = (await sb.auth.getSession()).data.session;
       if (!exams.length || !s) return;
+      var targetExam = $("targetExam").value;
+      var examDate = $("examDate").value;
+      var today = new Date();
+      var todayKey = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+      if (exams.indexOf(targetExam) === -1) return say("Select your main target exam above.", "err");
+      if (!examDate || examDate < todayKey) return say("Choose today or a future target exam date.", "err");
+      if (!$("prepStage").value) return say("Choose your class or preparation stage.", "err");
+      if (!$("dailyHours").value) return say("Choose how many hours you can study each day.", "err");
+      function selectedSubjects(name) {
+        return Array.prototype.map.call(examForm.querySelectorAll('input[name="' + name + '"]:checked'), function (b) { return b.value; });
+      }
+      var profile = {
+        targetExam: targetExam,
+        examDate: examDate,
+        prepStage: $("prepStage").value,
+        dailyHours: $("dailyHours").value,
+        strongSubjects: selectedSubjects("strongSubject"),
+        weakSubjects: selectedSubjects("weakSubject"),
+        prepGoal: $("prepGoal").value.trim()
+      };
       var u = s.user;
       $("examGo").disabled = true;
       say("Saving...");
@@ -162,8 +196,12 @@
         $("examGo").disabled = false;
         return say("Could not save: " + r.error.message, "err");
       }
-      await sb.auth.updateUser({ data: { exams: exams } }); // backup copy
-      location.href = "index.html";
+      var metadata = await sb.auth.updateUser({ data: { exams: exams, student_profile: profile } }); // backup copy
+      if (metadata.error) {
+        $("examGo").disabled = false;
+        return say("Your exam choice was saved, but your study profile could not be updated: " + metadata.error.message, "err");
+      }
+      location.href = "dashboard.html";
     });
   }
 })();

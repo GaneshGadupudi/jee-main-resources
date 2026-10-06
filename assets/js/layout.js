@@ -1,9 +1,9 @@
 // Injects the shared nav and footer. Load this BEFORE script.js.
 (function () {
   var page = location.pathname.split("/").pop() || "index.html";
-  var items = [["index.html", "Home"], ["about.html", "About"], ["features.html", "Features"], ["resources.html", "Resources"], ["faq.html", "FAQ"]];
+  var items = [["index.html", "Home"], ["dashboard.html", "My dashboard", "member-only"], ["about.html", "About"], ["features.html", "Features"], ["resources.html", "Resources"], ["faq.html", "FAQ"]];
   var links = items.map(function (i) {
-    return '<li><a href="' + i[0] + '"' + (i[0] === page ? ' aria-current="page"' : "") + ">" + i[1] + "</a></li>";
+    return '<li' + (i[2] ? ' class="' + i[2] + '" hidden' : "") + '><a href="' + i[0] + '"' + (i[0] === page ? ' aria-current="page"' : "") + ">" + i[1] + "</a></li>";
   }).join("");
 
   var nav = '<nav class="nav" aria-label="Main"><div class="wrap">' +
