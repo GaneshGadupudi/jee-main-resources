@@ -12,16 +12,16 @@
   var storageAvailable = true;
 
   var tasks = [
-    { id: "physics", subject: "Physics", title: "Revise Current Electricity", detail: "Concept revision", minutes: 40 },
-    { id: "chemistry", subject: "Chemistry", title: "Review Chemical Bonding", detail: "Concept revision", minutes: 40 },
-    { id: "mathematics", subject: "Mathematics", title: "Practise Integration", detail: "Problem solving", minutes: 45 },
+    { id: "physics", subject: "Physics", chapter: "Current Electricity", title: "Revise Current Electricity", detail: "Concept revision", minutes: 40 },
+    { id: "chemistry", subject: "Chemistry", chapter: "Chemical Bonding", title: "Review Chemical Bonding", detail: "Concept revision", minutes: 40 },
+    { id: "mathematics", subject: "Mathematics", chapter: "Indefinite Integrals", title: "Practise Integration", detail: "Problem solving", minutes: 45 },
     { id: "revision", subject: "Revision", title: "Review a question you got wrong", detail: "Mistake-book revision", minutes: 20 },
     { id: "focus", subject: "Study routine", title: "Plan one focused study block", detail: "Your daily commitment", minutes: 15 }
   ];
 
   var questions = [
     { subject: "Physics", chapter: "Kinematics", text: "A particle's velocity is v(t) = 3t² + 2 m/s. What is its acceleration at t = 2 s?", options: ["6 m/s²", "12 m/s²", "14 m/s²", "18 m/s²"], answer: 1, explanation: "Acceleration is dv/dt = 6t. At t = 2 s, a = 12 m/s²." },
-    { subject: "Physics", chapter: "Current Electricity", text: "Two resistors of 2 Ω and 4 Ω are connected in series. What is their equivalent resistance?", options: ["2/3 Ω", "2 Ω", "6 Ω", "8 Ω"], answer: 2, explanation: "Resistances in series add: R = 2 + 4 = 6 Ω." },
+    { subject: "Physics", chapter: "Current Electricity", text: "A 12 V battery is connected across a resistor of 4 Ω. What current flows through the resistor?", options: ["1.5 A", "3 A", "4 A", "48 A"], answer: 1, explanation: "By Ohm's law, I = V / R = 12 / 4 = 3 A." },
     { subject: "Physics", chapter: "Work, Power & Energy", text: "A 2 kg object starts from rest and accelerates uniformly at 3 m/s². How far does it travel in 4 s?", options: ["12 m", "18 m", "24 m", "36 m"], answer: 2, explanation: "From rest, s = ½at² = ½ × 3 × 4² = 24 m." },
     { subject: "Physics", chapter: "Electrostatics", text: "Two positive point charges are brought closer together. What happens to the magnitude of the electrostatic force between them?", options: ["It decreases", "It increases", "It stays constant", "It becomes zero"], answer: 1, explanation: "By Coulomb's law, force varies as 1/r². Decreasing the separation increases the force." },
     { subject: "Physics", chapter: "Units & Measurements", text: "What is the SI unit of work?", options: ["Watt", "Newton", "Joule", "Pascal"], answer: 2, explanation: "The SI unit of work is the joule (J), equal to one newton metre." },
@@ -131,6 +131,7 @@
         item.title = "Build confidence with " + task.subject + " practice";
         item.detail = "Weak-subject focus";
       }
+
       if (task.id === "focus" && profile.prepGoal) {
         item.title = "Work on your goal: " + profile.prepGoal;
         item.detail = "Your preparation goal";
@@ -139,24 +140,46 @@
     });
   }
 
+  function topicDetails(task) {
+    var details = {
+      "Current Electricity": {
+        preview: "Electric current is the rate of flow of charge through a conductor. Voltage provides the push; resistance limits the flow.",
+        formulas: ["Current: I = Q / t", "Ohm's law: V = IR", "Power: P = VI"]
+      },
+      "Chemical Bonding": {
+        preview: "Atoms form bonds to reach a more stable electron configuration. Ionic bonds involve transfer; covalent bonds involve sharing.",
+        formulas: ["Formal charge = V - (L + B / 2)", "Bond order = 1/2 (bonding - antibonding)", "Dipole moment: μ = q × r"]
+      },
+      "Indefinite Integrals": {
+        preview: "Integration reverses differentiation. Add the constant of integration because every antiderivative differs by a constant.",
+        formulas: ["∫xⁿ dx = xⁿ⁺¹/(n + 1) + C", "∫1/x dx = ln|x| + C", "∫eˣ dx = eˣ + C"]
+      }
+    };
+    return details[task.chapter] || {
+      preview: "Review the key idea, connect it to a useful formula, and then test your understanding with a focused question.",
+      formulas: ["Identify the given quantities", "Choose the related principle", "Check units and answer"]
+    };
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (character) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
     });
   }
 
-  function taskMarkup(task) {
+  function taskMarkup(task, index, taskSet) {
     var status = taskStatusValue(task.id);
-    return '<div class="task-item">' +
-      '<button type="button" class="task-toggle" role="checkbox" aria-checked="' + (status === "completed") + '" data-task-id="' + task.id + '" data-status="' + status + '" aria-label="' + taskStatus(status) + ': ' + escapeHtml(task.title) + '">' + (status === "completed" ? "✓" : status === "in-progress" ? "·" : "") + '</button>' +
-      '<div class="task-copy"><span class="task-title">' + escapeHtml(task.title) + '</span><span class="task-meta">' + escapeHtml(task.subject) + '<span>·</span>' + task.minutes + ' min</span></div>' +
-      '<span class="task-status" data-status="' + status + '">' + taskStatus(status) + '</span></div>';
+    var locked = index > 0 && taskStatusValue(taskSet[index - 1].id) !== "completed";
+    return '<div class="task-item' + (locked ? " is-locked" : "") + '"' + (locked ? "" : ' data-open-task="' + task.id + '" tabindex="0"') + '>' +
+      '<button type="button" class="task-toggle" role="checkbox" aria-checked="' + (status === "completed") + '" data-task-id="' + task.id + '" data-status="' + status + '"' + (locked ? " disabled" : "") + ' aria-label="' + taskStatus(status) + ': ' + escapeHtml(task.title) + '">' + (locked ? "▣" : status === "completed" ? "✓" : status === "in-progress" ? "·" : "") + '</button>' +
+      '<div class="task-copy"><span class="task-title">' + escapeHtml(task.title) + '</span><span class="task-meta">' + escapeHtml(task.subject) + '<span>·</span>' + escapeHtml(task.chapter || task.detail) + '<span>·</span>' + task.minutes + ' min</span></div>' +
+      '<span class="task-status" data-status="' + status + '">' + (locked ? "Complete previous task to unlock" : taskStatus(status)) + '</span></div>';
   }
 
   function renderTasks() {
     var todayTasks = dailyTasks();
-    document.getElementById("overviewTasks").innerHTML = todayTasks.slice(0, 4).map(taskMarkup).join("");
-    document.getElementById("fullTasks").innerHTML = todayTasks.map(taskMarkup).join("");
+    document.getElementById("overviewTasks").innerHTML = todayTasks.slice(0, 4).map(function (task, index, list) { return taskMarkup(task, index, todayTasks); }).join("");
+    document.getElementById("fullTasks").innerHTML = todayTasks.map(function (task, index) { return taskMarkup(task, index, todayTasks); }).join("");
     document.getElementById("planTaskCount").textContent = todayTasks.length + " tasks";
     var complete = todayTasks.filter(function (task) { return taskStatusValue(task.id) === "completed"; }).length;
     var percent = Math.round(complete / todayTasks.length * 100);
@@ -246,6 +269,16 @@
     document.getElementById("progressQuestions").textContent = totals.attempted;
     document.getElementById("progressAccuracy").textContent = totals.attempted ? Math.round(totals.correct / totals.attempted * 100) + "%" : "—";
     document.getElementById("mistakePageCount").textContent = state.mistakeBook.length;
+    document.getElementById("consistencyStreak").textContent = state.streak;
+    var weeklyAttempted = Object.keys(history).reduce(function (sum, key) {
+      var day = history[key];
+      return sum + (Number(day.attempted) || 0);
+    }, 0);
+    var weeklyHours = Math.min(25, Math.round(weeklyAttempted * 25 / 60 * 10) / 10);
+    var weeklyPercent = Math.min(100, Math.round(weeklyHours / 25 * 100));
+    document.getElementById("weeklyHours").textContent = weeklyHours;
+    document.getElementById("weeklyPercent").textContent = weeklyPercent + "%";
+    document.getElementById("weeklyProgressBar").style.width = weeklyPercent + "%";
 
     var title = document.getElementById("insightTitle");
     var text = document.getElementById("insightText");
@@ -404,6 +437,37 @@
     updateAchievements();
   }
 
+  function openTaskModal(id) {
+    var task = dailyTasks().find(function (item) { return item.id === id; });
+    if (!task) return;
+    var topic = topicDetails(task);
+    document.getElementById("taskModalTitle").textContent = task.title;
+    document.getElementById("taskModalSubject").textContent = task.subject;
+    document.getElementById("taskModalPreview").textContent = topic.preview;
+    document.getElementById("taskModalFormulas").innerHTML = topic.formulas.map(function (formula) {
+      return "<span>" + escapeHtml(formula) + "</span>";
+    }).join("");
+    document.getElementById("taskModal").hidden = false;
+    document.body.classList.add("modal-open");
+    document.getElementById("studyConceptNotes").dataset.taskId = id;
+    document.getElementById("skipToPractice").dataset.taskId = id;
+  }
+
+  function closeTaskModal() {
+    document.getElementById("taskModal").hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+
+  function startTaskPractice(id) {
+    var task = dailyTasks().find(function (item) { return item.id === id; });
+    var matchingQuestion = questions.findIndex(function (question) {
+      return task && (question.chapter === task.chapter || question.subject === task.subject);
+    });
+    if (matchingQuestion !== -1) questionIndex = matchingQuestion;
+    closeTaskModal();
+    showView("practice");
+  }
+
   function chooseOption(index) {
     if (state.answers[questionIndex]) return;
     selectedOption = index;
@@ -474,6 +538,18 @@
   }
 
   function bindEvents() {
+    var dashboardThemeButton = document.querySelector("[data-dashboard-theme]");
+    if (dashboardThemeButton) {
+      dashboardThemeButton.textContent = document.documentElement.dataset.theme === "dark" ? "☀" : "☾";
+      dashboardThemeButton.setAttribute("aria-label", document.documentElement.dataset.theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+      dashboardThemeButton.addEventListener("click", function () {
+        var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem("theme", next); } catch (error) { showStorageNotice("Theme preference could not be saved, but this session will use your selected theme."); }
+        dashboardThemeButton.textContent = next === "dark" ? "☀" : "☾";
+        dashboardThemeButton.setAttribute("aria-label", next === "dark" ? "Switch to light mode" : "Switch to dark mode");
+      });
+    }
     document.addEventListener("click", function (event) {
       var viewButton = event.target.closest("[data-open-view], [data-view]");
       if (viewButton) {
@@ -488,6 +564,13 @@
       var taskButton = event.target.closest("[data-task-id]");
       if (taskButton) cycleTask(taskButton.dataset.taskId);
 
+      var taskRow = event.target.closest("[data-open-task]");
+      if (taskRow && !event.target.closest("[data-task-id]")) openTaskModal(taskRow.dataset.openTask);
+      if (event.target.closest("#closeTaskModal")) closeTaskModal();
+      if (event.target.closest("#skipToPractice, #studyConceptNotes")) {
+        startTaskPractice(event.target.closest("#skipToPractice, #studyConceptNotes").dataset.taskId);
+      }
+
       var optionButton = event.target.closest("[data-option]");
       if (optionButton) chooseOption(Number(optionButton.dataset.option));
 
@@ -499,6 +582,30 @@
       if (event.target.closest("#restartPractice")) {
         questionIndex = 0;
         showView("practice");
+      }
+
+      if (event.target.closest("#askTutor")) {
+        var tutorInput = document.getElementById("tutorQuestion");
+        var tutorReply = document.getElementById("tutorReply");
+        var questionText = tutorInput.value.trim();
+        if (!questionText) {
+          tutorReply.textContent = "Type a concept or question and I’ll help you break it down.";
+        } else {
+          tutorReply.textContent = "Start with the idea, then connect it to the formula. For \"" + questionText + "\", try explaining what you already know and I’ll guide the next step.";
+          tutorInput.value = "";
+        }
+      }
+
+      var mentorRequest = event.target.closest("[data-mentor-request]");
+      if (mentorRequest) {
+        var mentorStatus = document.getElementById("mentorRequestStatus");
+        if (mentorStatus) {
+          mentorStatus.textContent = "Request sent. We’ll notify you when a mentor is connected.";
+          mentorStatus.hidden = false;
+        }
+        mentorRequest.textContent = "Mentor request sent";
+        mentorRequest.disabled = true;
+        mentorRequest.classList.add("is-requested");
       }
 
       var reviseButton = event.target.closest("[data-revise-id]");

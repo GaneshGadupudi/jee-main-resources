@@ -14,8 +14,9 @@
     }
   }
 
-  // Dark is the default; a saved choice wins.
-  setTheme(read("theme") || "dark");
+  // The study workspace defaults to the calm light layout; other pages retain the dark default.
+  var defaultTheme = document.body.classList.contains("dashboard-page") ? "light" : "dark";
+  setTheme(read("theme") || defaultTheme);
 
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) {

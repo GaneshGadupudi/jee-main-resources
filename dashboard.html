@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -53,6 +53,8 @@
         <div class="breadcrumb">Workspace <span>/</span> <strong id="currentViewLabel">Overview</strong></div>
         <div class="topbar-actions">
           <span class="today-date" id="todayDate"></span>
+          <button class="topbar-icon" type="button" aria-label="Notifications" title="Notifications">♧<span class="notification-dot"></span></button>
+          <button class="topbar-icon" type="button" data-dashboard-theme aria-label="Switch to dark mode" title="Switch theme">☾</button>
           <button class="avatar-button" type="button" data-open-profile aria-label="Open your profile"><span id="avatarInitial">S</span></button>
         </div>
       </header>
@@ -69,6 +71,21 @@
             <div class="countdown-copy"><span class="countdown-icon">◷</span><div><span class="eyebrow">YOUR NEXT EXAM</span><h2 id="countdownExam">Set your exam date</h2><p id="countdownCaption">Add your target date to see your countdown and personalise your plan.</p></div></div>
             <div class="countdown-number"><strong id="daysLeft">—</strong><span>days to go</span></div>
             <button class="countdown-edit" type="button" data-open-profile aria-label="Set your exam date">↗</button>
+          </div>
+
+          <div class="workspace-goals">
+            <article class="panel consistency-panel">
+              <div class="panel-heading"><div><span class="eyebrow">BUILD YOUR RHYTHM</span><h2>Daily consistency</h2></div><span class="goal-icon">♨</span></div>
+              <div class="consistency-value"><strong id="consistencyStreak">0</strong><span>day streak</span><b>Personal best</b></div>
+              <p class="panel-description">Show up for one focused session today. Small steps compound.</p>
+              <div class="week-dots" aria-label="This week's activity"><span class="done">M</span><span class="done">T</span><span>W</span><span class="today">T</span><span>F</span><span>S</span><span>S</span></div>
+            </article>
+            <article class="panel target-panel">
+              <div class="panel-heading"><div><span class="eyebrow">THIS WEEK</span><h2>Weekly target</h2></div><button type="button" class="text-action" data-open-view="progress">Details →</button></div>
+              <div class="target-value"><strong id="weeklyHours">0</strong><span>/ 25 hrs</span><b id="weeklyPercent">0%</b></div>
+              <div class="progress-track"><span id="weeklyProgressBar"></span></div>
+              <p class="panel-description">Study tasks and practice keep your target moving.</p>
+            </article>
           </div>
 
           <div class="stats-grid" aria-label="Your preparation at a glance">
@@ -108,6 +125,10 @@
               <button type="button" class="text-action" data-open-view="progress">View my progress <span aria-hidden="true">→</span></button>
             </article>
           </div>
+          <article class="ai-tutor-card">
+            <span class="tutor-avatar">✦</span><div><span class="eyebrow">YOUR ON-DEMAND COMPANION</span><h2>A little help goes a long way</h2><p>Stuck on a concept? JEE AI Tutor can break it down, or connect you with a real mentor.</p></div>
+            <div class="tutor-actions"><button type="button" class="btn" data-open-view="practice">Open AI tutor →</button><button type="button" class="text-action" data-mentor-request>Connect with a mentor</button></div>
+          </article>
           <p class="local-note">Practice answers and study-task progress are saved in this browser on this device.</p>
         </section>
 
@@ -121,7 +142,7 @@
           <div class="page-heading"><div><span class="eyebrow">BUILD YOUR DAILY HABIT</span><h1 class="dashboard-title">Problems of the day</h1><p class="dashboard-subtitle">15 original starter questions: five each in Physics, Chemistry and Mathematics.</p></div><span class="live-dot">TODAY</span></div>
           <div class="practice-workspace">
             <article class="panel question-panel"><div class="question-topline"><span id="questionSubject" class="question-subject">PHYSICS</span><span id="questionCounter">Question 1 of 15</span></div><div class="question-progress"><span id="questionProgress"></span></div><div class="subject-switcher" role="group" aria-label="Switch practice subject"><button type="button" data-subject-switch="Physics" aria-pressed="true">Physics</button><button type="button" data-subject-switch="Chemistry" aria-pressed="false">Chemistry</button><button type="button" data-subject-switch="Mathematics" aria-pressed="false">Mathematics</button></div><p id="questionChapter" class="question-chapter"></p><h2 id="questionText" class="question-text"></h2><div id="answerOptions" class="answer-options"></div><div id="answerFeedback" class="answer-feedback" hidden></div><div class="question-controls"><button type="button" id="previousQuestion" class="btn ghost">← Previous</button><span id="answeredLabel" class="answered-label">0 answered</span><button type="button" id="nextQuestion" class="btn" disabled>Check answer</button></div></article>
-            <aside class="panel practice-sidebar"><span class="eyebrow">TODAY'S SESSION</span><strong class="session-number"><span id="sessionAnswered">0</span><small> / 15 answered</small></strong><div class="subject-progress-list"><div><span class="subject-dot physics-dot"></span>Physics <b id="physicsAnswered">0 / 5</b></div><div><span class="subject-dot chemistry-dot"></span>Chemistry <b id="chemistryAnswered">0 / 5</b></div><div><span class="subject-dot maths-dot"></span>Mathematics <b id="mathsAnswered">0 / 5</b></div></div><p class="panel-description">Take your time. Read each explanation—even when you get it right.</p><button type="button" id="restartPractice" class="text-action">Review this set from the start ↺</button></aside>
+            <aside class="panel practice-sidebar"><span class="eyebrow">TODAY'S SESSION</span><strong class="session-number"><span id="sessionAnswered">0</span><small> / 15 answered</small></strong><div class="subject-progress-list"><div><span class="subject-dot physics-dot"></span>Physics <b id="physicsAnswered">0 / 5</b></div><div><span class="subject-dot chemistry-dot"></span>Chemistry <b id="chemistryAnswered">0 / 5</b></div><div><span class="subject-dot maths-dot"></span>Mathematics <b id="mathsAnswered">0 / 5</b></div></div><p class="panel-description">Take your time. Read each explanation—even when you get it right.</p><button type="button" id="restartPractice" class="text-action">Review this set from the start ↺</button><div class="mini-tutor"><div><span class="tutor-avatar">✦</span><strong>JEE AI Tutor</strong><small>Your concept companion</small></div><p id="tutorReply">Ask me why an answer works, or request a simpler explanation.</p><div class="tutor-input"><input id="tutorQuestion" type="text" placeholder="Ask a follow-up..." aria-label="Ask the AI tutor"><button id="askTutor" type="button" aria-label="Ask AI tutor">➤</button></div><button type="button" class="mentor-button" data-mentor-request>Still unclear? Connect with an online mentor</button><p id="mentorRequestStatus" class="mentor-request-status" role="status" hidden></p></div></aside>
           </div>
         </section>
 
@@ -140,6 +161,18 @@
     </div>
   </div>
 </main>
+<div id="taskModal" class="task-modal" hidden role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+  <div class="task-modal-card">
+    <div class="task-modal-breadcrumb"><span>▣</span><strong>Before you practice</strong><span>›</span><span id="taskModalSubject">Physics</span><button type="button" id="closeTaskModal" aria-label="Close">×</button></div>
+    <div class="task-modal-body">
+      <span class="eyebrow">LEARN BEFORE PRACTICE</span>
+      <h2 id="taskModalTitle">Revise Current Electricity</h2>
+      <p>Build the concept first, then put it to work.</p>
+      <div class="concept-preview"><strong>Quick concept preview</strong><p id="taskModalPreview">Current is the rate of flow of charge through a conductor. Voltage provides the push; resistance limits the flow.</p><div id="taskModalFormulas" class="formula-chips"><span>Current: I = Q / t</span><span>Ohm's law: V = IR</span><span>Power: P = VI</span></div></div>
+      <div class="task-modal-actions"><button type="button" id="skipToPractice" class="text-action">Skip to Practice Directly →</button><button type="button" id="studyConceptNotes" class="btn">▣ Study Concept Notes</button></div>
+    </div>
+  </div>
+</div>
 <script src="assets/js/layout.js"></script>
 <script src="assets/js/script.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
