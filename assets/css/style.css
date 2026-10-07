@@ -134,13 +134,16 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
   .menu-btn { display: block; }
   .links { display: none; position: absolute; top: 64px; left: 0; right: 0; flex-direction: column; padding: 12px 20px; background: var(--bg); border-bottom: 1px solid var(--line); }
   .links.open { display: flex; }
-  .nav-actions .btn.ghost, .welcome { display: none; }
+  .welcome { display: none; }
 }
 @media (max-width: 860px) {
   .hero { padding: 56px 0 48px; }
   .hero .wrap { grid-template-columns: 1fr; }
   .section { padding: 52px 0; }
   .band { padding: 30px 20px; }
+}
+@media (max-width: 600px) {
+  .brand { flex: 1 1 auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
