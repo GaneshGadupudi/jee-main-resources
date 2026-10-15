@@ -6,6 +6,7 @@ import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { getSupabase } from "@/lib/supabase";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,9 +21,9 @@ export default function LoginPage() {
     setBusy(true);
     setMessage("");
     try {
-      const { error } = await getSupabase().auth.signInWithPassword({ email: email.trim(), password });
+      const { data, error } = await getSupabase().auth.signInWithPassword({ email: email.trim(), password });
       if (error) throw error;
-      window.location.href = "/dashboard";
+      window.location.href = hasCompletedOnboarding(data.user) ? "/dashboard" : "/onboarding";
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to log in. Please try again.");
     } finally {

@@ -6,6 +6,8 @@ import { MARKS, SUBJECTS, clock, getContests, pad } from "@/lib/contest";
 import { useTestRunner } from "@/components/useTestRunner";
 import TestRoom, { Card, primary, soft } from "@/components/TestRoom";
 import TestResult from "@/components/TestResult";
+import ExamDeviceNotice from "@/components/ExamDeviceNotice";
+import { isPhoneDevice } from "@/lib/exam-device";
 
 export default function WeeklyChallenge({ registered, setRegistered, onAddMistakes, onFinish, onReason, onExit }) {
   const { upcoming, past } = useMemo(() => getContests(new Date()), []);
@@ -13,8 +15,17 @@ export default function WeeklyChallenge({ registered, setRegistered, onAddMistak
   const runner = useTestRunner({ activeKey: "jee-contest-active", historyKey: "jee-contest-history", contests, onAddMistakes, onFinish });
   const { now, history, active, resultId, setResultId, contestOf } = runner;
   const [openSolutions, setOpenSolutions] = useState(null);
+  const [deviceBlocked, setDeviceBlocked] = useState(false);
 
-  const startContest = (contest) => runner.start(contest, contest === upcoming ? upcoming.end.getTime() : Date.now() + contest.minutes * 60000);
+  const startContest = (contest) => {
+    if (isPhoneDevice()) {
+      setDeviceBlocked(true);
+      return;
+    }
+    runner.start(contest, contest === upcoming ? upcoming.end.getTime() : Date.now() + contest.minutes * 60000);
+  };
+
+  if (deviceBlocked) return <ExamDeviceNotice onBack={() => setDeviceBlocked(false)} />;
 
   if (active) {
     const contest = contestOf(active.contestId);

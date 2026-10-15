@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Check, ClipboardList } from "lucide-react";
 import { MARKS, clock } from "@/lib/contest";
 import { getMockTests } from "@/lib/mock";
 import { useTestRunner } from "@/components/useTestRunner";
 import TestRoom, { Card, primary, soft } from "@/components/TestRoom";
 import TestResult from "@/components/TestResult";
+import ExamDeviceNotice from "@/components/ExamDeviceNotice";
+import { isPhoneDevice } from "@/lib/exam-device";
 
 // How often to sit a full mock, based on how close the exam is.
 function schedule(daysLeft) {
@@ -19,8 +21,17 @@ export default function MockTests({ daysLeft, onAddMistakes, onFinish, onReason,
   const tests = useMemo(() => getMockTests(), []);
   const runner = useTestRunner({ activeKey: "jee-mock-active", historyKey: "jee-mock-history", contests: tests, onAddMistakes, onFinish });
   const { now, history, active, resultId, setResultId, contestOf } = runner;
+  const [deviceBlocked, setDeviceBlocked] = useState(false);
 
-  const startTest = (test) => runner.start(test, Date.now() + test.minutes * 60000);
+  const startTest = (test) => {
+    if (isPhoneDevice()) {
+      setDeviceBlocked(true);
+      return;
+    }
+    runner.start(test, Date.now() + test.minutes * 60000);
+  };
+
+  if (deviceBlocked) return <ExamDeviceNotice onBack={() => setDeviceBlocked(false)} />;
 
   if (active) {
     const test = contestOf(active.contestId);

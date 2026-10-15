@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import ContentPage, { Card } from "@/components/ContentPage";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
 
 export default function OnboardingPage() {
   const [exams, setExams] = useState([]);
@@ -11,7 +12,12 @@ export default function OnboardingPage() {
   const [stage, setStage] = useState("");
   const [hours, setHours] = useState("");
   const [message, setMessage] = useState("");
-  useEffect(() => { getSupabase().auth.getUser().then(({ data }) => { if (!data.user) window.location.href = "/login"; }); }, []);
+  useEffect(() => {
+    getSupabase().auth.getUser().then(({ data }) => {
+      if (!data.user) window.location.href = "/login";
+      else if (hasCompletedOnboarding(data.user)) window.location.href = "/dashboard";
+    });
+  }, []);
   const toggleExam = (exam) => setExams((current) => current.includes(exam) ? current.filter((item) => item !== exam) : [...current, exam]);
   async function submit(event) {
     event.preventDefault();

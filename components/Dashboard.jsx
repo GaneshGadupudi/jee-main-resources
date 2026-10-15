@@ -10,10 +10,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import { dayKey, summarize } from "@/lib/progress";
 import { buildPlan, daysUntil, planMode, todayKey, weightLabel } from "@/lib/plan";
+import { allPyqQuestions, pyqSubjects } from "@/lib/pyq";
 import {
   BookOpen, BrainCircuit, Check, ChevronRight, CircleHelp, Clock3,
   Flame, Home, LayoutDashboard, ListChecks, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Play, 
-  Sparkles, Target, Trophy, UserRound, X, Zap,
+  BookMarked, Sparkles, Target, Trophy, UserRound, X, Zap,
 } from "lucide-react";
 
 const questions = [
@@ -24,7 +25,7 @@ const questions = [
 
 const navItems = [
   ["overview", "Overview", Home], ["study-plan", "Study plan", ListChecks],
-  ["practice", "Daily practice", BrainCircuit], ["mock-tests", "Mock tests", Clock3],
+  ["practice", "Daily practice", BrainCircuit], ["pyq", "PYQ practice", BookMarked], ["mock-tests", "Mock tests", Clock3],
   ["challenge", "Weekly challenge", Trophy], ["live-sessions", "Live sessions", CircleHelp],
   ["mistakes", "Mistake book", BookOpen],
   ["progress", "Progress", LayoutDashboard], ["profile", "My profile", UserRound],
@@ -92,21 +93,48 @@ function DashboardApp() {
   const [answers, setAnswers] = useState([]);
   const [doneLog, setDoneLog] = useState([]);
   const [timeLog, setTimeLog] = useState([]);
+  const [pyqSubject, setPyqSubject] = useState("all");
+  const [pyqChapter, setPyqChapter] = useState("all");
+  const [pyqTopic, setPyqTopic] = useState("all");
+  const [pyqAnswer, setPyqAnswer] = useState({});
 
   useEffect(() => {
-    try {
-      setCompleted(JSON.parse(localStorage.getItem("jee-completed") || "[]"));
-      setMistakes(JSON.parse(localStorage.getItem("jee-mistakes") || "[]"));
-      setRegistered(localStorage.getItem("jee-challenge") === "true");
-      const savedProfile = JSON.parse(localStorage.getItem("jee-profile") || "null");
-      if (savedProfile) setProfile((current) => ({ ...current, ...savedProfile }));
-      setChapterHistory(JSON.parse(localStorage.getItem("jee-chapters-done") || "[]"));
-      setScores(JSON.parse(localStorage.getItem("jee-scores") || "{}"));
-      setAnswers(JSON.parse(localStorage.getItem("jee-answers") || "[]"));
-      setDoneLog(JSON.parse(localStorage.getItem("jee-done") || "[]"));
-      setTimeLog(JSON.parse(localStorage.getItem("jee-time") || "[]"));
-    } catch { /* local storage is optional */ }
-    setLoaded(true);
+    let active = true;
+    async function loadDashboard() {
+      try {
+        const [{ data: authData }] = await Promise.all([getSupabase().auth.getUser()]);
+        if (!active) return;
+        const user = authData.user;
+        const savedProfile = user?.user_metadata?.student_profile;
+        const savedExams = user?.user_metadata?.exams;
+        setProfile((current) => ({
+          ...current,
+          name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Student",
+          email: user?.email || "",
+          ...(savedProfile ? {
+            target: savedProfile.targetExam || current.target,
+            date: savedProfile.examDate || current.date,
+            hours: savedProfile.dailyHours || current.hours,
+            stage: savedProfile.prepStage || current.stage,
+            strengths: savedProfile.strengths || current.strengths,
+            focus: savedProfile.focus || current.focus,
+            goal: savedProfile.goal || current.goal,
+          } : {}),
+          ...(Array.isArray(savedExams) ? { exams: savedExams } : {}),
+        }));
+        setCompleted(JSON.parse(localStorage.getItem("jee-completed") || "[]"));
+        setMistakes(JSON.parse(localStorage.getItem("jee-mistakes") || "[]"));
+        setRegistered(localStorage.getItem("jee-challenge") === "true");
+        setChapterHistory(JSON.parse(localStorage.getItem("jee-chapters-done") || "[]"));
+        setScores(JSON.parse(localStorage.getItem("jee-scores") || "{}"));
+        setAnswers(JSON.parse(localStorage.getItem("jee-answers") || "[]"));
+        setDoneLog(JSON.parse(localStorage.getItem("jee-done") || "[]"));
+        setTimeLog(JSON.parse(localStorage.getItem("jee-time") || "[]"));
+      } catch { /* local storage is optional */ }
+      if (active) setLoaded(true);
+    }
+    loadDashboard();
+    return () => { active = false; };
   }, []);
 
   const update = (key, value, setter) => { setter(value); localStorage.setItem(key, JSON.stringify(value)); };
@@ -184,6 +212,10 @@ function DashboardApp() {
       setMistakeReasonOpen(false);
     }
   };
+  const selectedPyqSubject = pyqSubjects.find((subject) => subject.id === pyqSubject);
+  const pyqChapters = selectedPyqSubject?.chapters || pyqSubjects.flatMap((subject) => subject.chapters);
+  const pyqTopics = pyqChapters.filter((chapter) => pyqChapter === "all" || chapter.id === pyqChapter).flatMap((chapter) => chapter.topics);
+  const filteredPyqs = allPyqQuestions.filter((question) => (pyqSubject === "all" || question.subject === selectedPyqSubject?.name) && (pyqChapter === "all" || question.chapter === pyqChapters.find((chapter) => chapter.id === pyqChapter)?.name) && (pyqTopic === "all" || question.topic === pyqTopics.find((topic) => topic.id === pyqTopic)?.name));
   const overview = <div className="space-y-4"><section className="flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-2xl border border-[#dcd8fb] bg-gradient-to-r from-[#f1efff] to-[#fbfbff] p-5"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e7e1ff] text-[#7564ed]"><Clock3 size={18} /></span><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">YOUR NEXT EXAM</p><h2 className="mt-1 text-sm font-extrabold text-[#27314c]">{profile.target}</h2><p className="mt-1 text-[10px] text-[#7d879e]">Your {profile.target} target date is {examDateLabel}.</p></div></div><div className="flex items-center gap-3"><div className="text-right"><strong className="block text-3xl font-extrabold text-[#282354]">{examDays}</strong><span className="text-[10px] text-[#7d879e]">days to go</span></div><button onClick={() => go("profile")} className="grid h-8 w-8 place-items-center rounded-lg border border-[#dcd8fb] bg-white text-[#7564ed]" aria-label="Edit exam date"><ChevronRight size={15} /></button></div></section><div className="grid gap-4 lg:grid-cols-[1.35fr_.9fr]"><Card><div className="flex items-start justify-between"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">BUILD YOUR RHYTHM</p><h2 className="mt-1 text-sm font-extrabold text-[#27314c]">Daily consistency</h2></div><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#f0edff] text-[#7564ed]"><Flame size={15} /></span></div><div className="mt-4 flex items-end gap-2"><strong className="text-2xl text-[#202944]">{stats.streak}</strong><span className="mb-1 text-[10px] text-[#7d879e]">day streak</span></div><p className="mt-2 text-[10px] leading-5 text-[#7d879e]">Show up for one focused session today. Small steps compound.</p><div className="mt-4 flex justify-between text-[9px] font-bold text-[#9aa3b5]">{stats.week.map((day) => <span key={day.key} title={day.key} className={`grid h-6 w-6 place-items-center rounded-full ${day.active ? "bg-[#7564ed] text-white" : "bg-[#f1f3f7]"} ${day.today ? "ring-1 ring-[#b9adff] ring-offset-1" : ""}`}>{day.label}</span>)}</div></Card><Card><div className="flex items-start justify-between"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">THIS WEEK</p><h2 className="mt-1 text-sm font-extrabold text-[#27314c]">Weekly target</h2></div><button onClick={() => go("progress")} className="text-[10px] font-bold text-[#7564ed]">Details →</button></div><div className="mt-4 flex items-end gap-1"><strong className="text-2xl text-[#202944]">{weekHours}</strong><span className="mb-1 text-[10px] text-[#7d879e]">/ {weekTargetHours} hrs</span><span className="mb-1 ml-auto text-[9px] font-bold text-[#7564ed]">{weekPercent}%</span></div><div className="mt-3 h-1.5 rounded-full bg-[#edf0f6]"><div className="h-full rounded-full bg-[#7564ed]" style={{ width: `${weekPercent}%` }} /></div><p className="mt-3 text-[10px] text-[#7d879e]">Study tasks and practice keep your target moving.</p></Card></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric icon={Check} label="Plan completed" value={`${Math.round((planDone / planTotal) * 100)}%`} hint={`${planDone} of ${planTotal} tasks`} tone="bg-[#eeeaff] text-[#6855d0]" /><Metric icon={BrainCircuit} label="Questions today" value={stats.todayCount} hint="Start your daily practice" tone="bg-[#e4f8f5] text-[#278f82]" /><Metric icon={Flame} label="Study streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} hint="One day at a time" tone="bg-[#fff3dc] text-[#b67821]" /><Metric icon={BookOpen} label="Mistakes to revisit" value={mistakes.length} hint="Your personal revision list" tone="bg-[#ffe8eb] text-[#c7586d]" /></div><div className="grid gap-4 xl:grid-cols-[1.25fr_.75fr]"><Card><div className="flex items-center justify-between"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">YOUR PERSONAL PLAN</p><h2 className="mt-1 text-sm font-extrabold text-[#27314c]">Today&apos;s study plan</h2></div><button onClick={() => go("study-plan")} className="text-[10px] font-extrabold text-[#6958d2]">See all →</button></div><div className="mt-4 space-y-1">{planTasks.slice(0, 4).map((task) => <button key={task.id} onClick={() => go("study-plan")} className="flex w-full items-center gap-3 border-b border-[#edf0f5] py-3 text-left last:border-0"><span className={`grid h-5 w-5 place-items-center rounded-md border text-[10px] ${completed.includes(task.id) ? "border-[#9ad7c9] bg-[#ddf6ed] text-[#2c967b]" : "border-[#cdd4e2] bg-white text-transparent"}`}><Check size={12} /></span><span className={`flex-1 text-xs font-bold ${completed.includes(task.id) ? "text-[#8d96a8] line-through" : "text-[#46516c]"}`}>{task.title}<small className="mt-1 block text-[9px] font-normal text-[#9aa3b5]">{task.type === "chapter" ? `${task.subject} · ${task.chapter}` : task.type === "mistakes" ? "Revision · Mistake book review" : "Study routine · Daily commitment"}</small></span><span className="text-[9px] text-[#8994aa]">{task.minutes} min</span></button>)}</div><div className="mt-3 h-1.5 rounded-full bg-[#edf0f6]"><div className="h-full rounded-full bg-[#7564ed]" style={{ width: `${Math.round((planDone / planTotal) * 100)}%` }} /></div><p className="mt-2 text-right text-[9px] text-[#8994aa]">{planDone} of {planTotal} complete</p></Card><Card className="border-[#dcd8fb] bg-gradient-to-br from-[#f4f1ff] to-white"><div className="flex items-center justify-between"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8175bd]">DAILY PRACTICE</p><h2 className="mt-1 text-sm font-extrabold text-[#29274e]">Problems of the day</h2></div><span className="text-[9px] font-extrabold text-[#4bbd99]">TODAY</span></div><p className="mt-4 text-xs leading-5 text-[#707b94]">A focused set across Physics, Chemistry and Mathematics, with explanations to learn from every answer.</p><div className="mt-4 flex flex-wrap gap-2 text-[10px]"><span className="rounded-lg border border-[#dce8f6] bg-white px-2 py-1 text-[#5f82ac]">Physics 5</span><span className="rounded-lg border border-[#eadff8] bg-white px-2 py-1 text-[#8465b6]">Chemistry 5</span><span className="rounded-lg border border-[#f0e4c9] bg-white px-2 py-1 text-[#b0833b]">Maths 5</span></div><p className="mt-4 text-[9px] text-[#8994aa]">15 questions · About 25 min</p><Button className="mt-4 w-full" onClick={() => go("practice")}>Start daily practice <ChevronRight size={14} /></Button></Card></div><div className="grid gap-4 xl:grid-cols-[1.25fr_.75fr]"><Card><div className="flex items-center justify-between"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">WEEKLY CHALLENGE</p><h2 className="mt-1 text-sm font-extrabold text-[#27314c]">Your weekend checkpoint</h2></div><Trophy size={16} className="text-[#d29a3a]" /></div><p className="mt-3 text-[10px] leading-5 text-[#7d879e]">A common, timed challenge for participating students. Your score, rank and percentile appear here after a challenge opens.</p><div className="mt-3 rounded-xl border border-[#e4e8f1] bg-[#fafbfe] p-3 text-[10px] text-[#69758d]"><div className="flex justify-between py-1"><span>Physics</span><b>25</b></div><div className="flex justify-between py-1"><span>Chemistry</span><b>25</b></div><div className="flex justify-between py-1"><span>Maths</span><b>25</b></div><div className="mt-1 flex justify-between border-t border-[#e4e8f1] pt-2"><span>Total</span><b>75 questions</b></div></div><button onClick={() => go("challenge")} className="mt-3 w-full rounded-xl border border-[#dfe3ef] px-3 py-2 text-[10px] font-extrabold text-[#34405b]">Explore challenge →</button></Card><Card><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">YOUR NEXT STEP</p><h2 className="mt-1 text-sm font-extrabold text-[#27314c]">Keep your momentum</h2><p className="mt-4 text-sm font-bold text-[#46516c]">&quot;Consistent beats long, random hours.&quot;</p><p className="mt-3 text-[10px] leading-5 text-[#7d879e]">Complete a study task or try today&apos;s practice to start building a picture of your progress.</p><button onClick={() => go("progress")} className="mt-4 text-[10px] font-extrabold text-[#6958d2]">View my progress →</button></Card></div><Card className="flex flex-wrap items-center justify-between gap-4 border-[#dcd8fb] bg-gradient-to-r from-[#f4f1ff] to-white"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8175bd]">YOUR ON-DEMAND COMPANION</p><h2 className="mt-1 text-sm font-extrabold text-[#29274e]">A little help goes a long way</h2></div><div className="flex items-center gap-3"><Button onClick={() => go("practice")}>Open AI tutor →</Button><button onClick={() => go("practice")} className="text-[10px] font-bold text-[#7564ed]">Connect with a mentor</button></div></Card></div>;
 
   const activePlanTask = planTasks.find((task) => task.id === activeTaskId);
@@ -240,6 +272,21 @@ function DashboardApp() {
     </section>)}</div> : <Card><p className="text-sm text-[#73809b]">Your mistake book is empty. Wrong answers from practice and study tasks appear here automatically.</p></Card>}
   </div>;
 
+  const pyqView = <div className="space-y-5">
+    <div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">PREVIOUS YEAR QUESTIONS</p><h1 className="text-3xl font-extrabold tracking-tight text-[#18223c]">PYQ practice</h1><p className="mt-2 text-sm text-[#73809b]">Practice JEE questions by subject, chapter, or topic.</p></div>
+    <Card><div className="grid gap-4 md:grid-cols-3">
+      <label className="text-xs font-bold text-[#46516b]">Subject<select value={pyqSubject} onChange={(event) => { setPyqSubject(event.target.value); setPyqChapter("all"); setPyqTopic("all"); }} className="mt-2 w-full rounded-xl border border-[#dfe5ef] bg-[#fafbfe] p-3 text-sm font-normal"><option value="all">All subjects</option>{pyqSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></label>
+      <label className="text-xs font-bold text-[#46516b]">Chapter<select value={pyqChapter} onChange={(event) => { setPyqChapter(event.target.value); setPyqTopic("all"); }} className="mt-2 w-full rounded-xl border border-[#dfe5ef] bg-[#fafbfe] p-3 text-sm font-normal"><option value="all">All chapters</option>{pyqChapters.map((chapter) => <option key={chapter.id} value={chapter.id}>{chapter.name}</option>)}</select></label>
+      <label className="text-xs font-bold text-[#46516b]">Topic<select value={pyqTopic} onChange={(event) => setPyqTopic(event.target.value)} className="mt-2 w-full rounded-xl border border-[#dfe5ef] bg-[#fafbfe] p-3 text-sm font-normal"><option value="all">All topics</option>{pyqTopics.map((topic) => <option key={topic.id} value={topic.id}>{topic.name}</option>)}</select></label>
+    </div><div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0f5] pt-4"><p className="text-xs text-[#73809b]"><strong className="text-[#27314c]">{filteredPyqs.length}</strong> sample question{filteredPyqs.length === 1 ? "" : "s"} match your selection.</p><span className="rounded-full bg-[#f0edff] px-3 py-1 text-[10px] font-extrabold tracking-wide text-[#6958d2]">JEE MAIN + ADVANCED</span></div></Card>
+    <div className="space-y-3">{filteredPyqs.map((question, index) => { const selected = pyqAnswer[question.id]; const answered = selected !== undefined; return <Card key={question.id}>
+      <div className="flex flex-wrap items-center gap-2 text-[10px] font-extrabold tracking-wide text-[#8994aa]"><span className="rounded-full bg-[#f0edff] px-2.5 py-1 text-[#6958d2]">{question.subject}</span><span>{question.chapter} · {question.topic}</span><span className="ml-auto">{question.exam} · {question.year}</span></div>
+      <p className="mt-4 text-sm font-bold leading-6 text-[#27314c]">{index + 1}. {question.text}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{question.options.map((option, optionIndex) => <button key={option} type="button" disabled={answered} onClick={() => setPyqAnswer((current) => ({ ...current, [question.id]: optionIndex }))} className={`rounded-xl border p-3 text-left text-xs font-semibold transition ${answered && optionIndex === question.answer ? "border-[#66b99d] bg-[#e9f8f1] text-[#287e65]" : answered && optionIndex === selected ? "border-[#dc8792] bg-[#fff0f2] text-[#bd4a5a]" : "border-[#e4e8f1] text-[#46516b] hover:border-[#a89bea] hover:bg-[#faf9ff]"}`}><span className="mr-2 text-[#8994aa]">{String.fromCharCode(65 + optionIndex)}.</span>{option}</button>)}</div>
+      {answered && <p className={`mt-4 rounded-xl p-3 text-xs leading-5 ${selected === question.answer ? "bg-[#e9f8f1] text-[#287e65]" : "bg-[#fff0f2] text-[#bd4a5a]"}`}><strong>{selected === question.answer ? "Correct. " : "Not quite. "}</strong>{question.explanation}</p>}
+    </Card>; })}</div>
+  </div>;
+
   const profileView = <div className="space-y-5">
     <div>
       <p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">MAKE THIS SPACE YOURS</p>
@@ -277,14 +324,33 @@ function DashboardApp() {
         <input value={profile.goal} onChange={(event) => setProfile({ ...profile, goal: event.target.value })} placeholder="e.g. Finish electrostatics revision this month" className="mt-2 w-full rounded-xl border border-[#dfe5ef] bg-[#fafbfe] p-3 text-sm font-normal" />
       </label>
       <div className="mt-7 flex items-center gap-4">
-        <Button onClick={() => { localStorage.setItem("jee-profile", JSON.stringify(profile)); setProfileMessage("Preferences saved successfully."); }}>Save my preferences</Button>
+        <Button onClick={async () => {
+          setProfileMessage("");
+          const { error } = await getSupabase().auth.updateUser({
+            data: {
+              name: profile.name,
+              exams: profile.exams,
+              student_profile: {
+                targetExam: profile.target,
+                examDate: profile.date,
+                prepStage: profile.stage,
+                dailyHours: profile.hours,
+                strengths: profile.strengths,
+                focus: profile.focus,
+                goal: profile.goal,
+              },
+            },
+          });
+          if (error) setProfileMessage(error.message);
+          else setProfileMessage("Preferences saved successfully.");
+        }}>Save my preferences</Button>
         {profileMessage && <p role="status" className="text-xs font-bold text-[#2c967b]">{profileMessage}</p>}
       </div>
     </Card>
   </div>;
 
   const liveSessions = <div className="space-y-5"><div className="flex items-start justify-between"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">LEARN FROM STUDENTS WHO&apos;VE BEEN THERE</p><h1 className="text-3xl font-extrabold text-[#18223c]">Live sessions</h1><p className="mt-2 text-sm text-[#73809b]">Online conversations and Q&amp;A with students from IITs, NITs and IIITs are being planned.</p></div><span className="rounded-full bg-[#fff3dc] px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-[#b67821]">IN PLANNING</span></div><Card className="max-w-2xl"><CircleHelp size={22} className="text-[#7564ed]" /><p className="mt-4 text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">COMING SOON</p><h2 className="mt-2 text-xl font-extrabold text-[#27314c]">Real experiences. Practical guidance.</h2><p className="mt-2 text-sm leading-6 text-[#73809b]">We&apos;re working towards live online sessions where current students from IITs, NITs and IIITs can share their experiences and answer your questions about preparation and campus life.</p><p className="mt-3 text-sm leading-6 text-[#73809b]">Session dates, speakers and joining details will be shared once confirmed.</p></Card></div>;
-  const content = { overview, "study-plan": plan, practice, "mock-tests": mockTests, challenge, "live-sessions": liveSessions, mistakes: mistakesView, progress, profile: profileView }[view] || overview;
+  const content = { overview, "study-plan": plan, practice, pyq: pyqView, "mock-tests": mockTests, challenge, "live-sessions": liveSessions, mistakes: mistakesView, progress, profile: profileView }[view] || overview;
   return <div className="dashboard-theme min-h-screen bg-[#f7f8fc]"><header className={`fixed top-0 z-30 flex h-16 w-full items-center border-b border-[#e4e8f1] bg-white/95 px-5 backdrop-blur ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}`}><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#a897ff] to-[#6edcdb] font-extrabold text-[#1c2140]">J</span><span className="text-base font-extrabold tracking-tight text-[#1d2945]">JEE<span className="ml-0.5 block text-[8px] tracking-[.25em] text-[#808aa8]">COMPASS</span></span></div><nav aria-label="Main navigation" className="ml-4 hidden items-center gap-1 lg:flex"><Link href="/" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">Home</Link><Link href="/dashboard" className="rounded-lg bg-[#eef0ff] px-3 py-2 text-sm font-semibold text-[#263252]">My dashboard</Link><Link href="/about" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">About</Link><Link href="/features" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">Features</Link><Link href="/resources" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">Resources</Link><Link href="/faq" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">FAQ</Link></nav><div className="ml-auto flex items-center gap-2 lg:hidden"><NotificationBell ready={loaded} onOpenView={go} registered={registered} planTasks={planTasks} completed={completed} mistakes={mistakes} streak={stats.streak} todayCount={stats.todayCount} examDays={examDays} /><button onClick={() => setMenuOpen(true)} className="rounded-lg p-2" aria-label="Open navigation"><Menu size={22} /></button></div><div className="ml-auto hidden items-center gap-4 lg:flex"><span className="text-xs text-[#8994aa]">{new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span><ThemeToggle className="!rounded-lg !border-[#e4e8f1]" /><NotificationBell ready={loaded} onOpenView={go} registered={registered} planTasks={planTasks} completed={completed} mistakes={mistakes} streak={stats.streak} todayCount={stats.todayCount} examDays={examDays} /><button onClick={() => go("profile")} className="flex items-center gap-2 text-sm font-bold text-[#34405b]"><UserRound size={18} />{profile.name}</button></div><nav aria-label="Main navigation" className="fixed left-0 right-0 top-16 flex gap-1 overflow-x-auto border-b border-[#e4e8f1] bg-white px-5 py-2 lg:hidden"><Link href="/" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">Home</Link><Link href="/dashboard" className="shrink-0 rounded-lg bg-[#eef0ff] px-3 py-2 text-xs font-semibold text-[#263252]">My dashboard</Link><Link href="/about" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">About</Link><Link href="/features" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">Features</Link><Link href="/resources" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">Resources</Link><Link href="/faq" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">FAQ</Link></nav></header>  <aside className={`fixed inset-y-0 left-0 z-40 h-[100dvh] w-[min(18rem,calc(100vw-1rem))] max-w-full overflow-y-auto overscroll-contain border-r border-[#e4e8f1] bg-white px-4 pb-24 pt-24 transition-all lg:translate-x-0 ${sidebarCollapsed ? "lg:w-16" : "lg:w-64"} ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}><button onClick={() => setMenuOpen(false)} className="absolute right-4 top-5 lg:hidden" aria-label="Close navigation"><X /></button><button onClick={() => setSidebarCollapsed((collapsed) => !collapsed)} className="absolute right-3 top-5 hidden rounded-lg p-2 text-[#6d7891] hover:bg-[#f0edff] lg:block" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button><p className="px-3 text-[10px] font-extrabold tracking-[.18em] text-[#a0a8b9] lg:hidden">MAIN NAVIGATION</p><nav aria-label="Main navigation" className="mb-5 space-y-1 lg:hidden"><Link href="/" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">Home</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block rounded-xl bg-[#eef0ff] px-3 py-2 text-sm font-semibold text-[#263252]">My dashboard</Link><Link href="/about" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">About</Link><Link href="/features" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">Features</Link><Link href="/resources" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">Resources</Link><Link href="/faq" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">FAQ</Link></nav><p className={`px-3 text-[10px] font-extrabold tracking-[.18em] text-[#a0a8b9] ${sidebarCollapsed ? "lg:hidden" : ""}`}>YOUR WORKSPACE</p>  <nav className={`mt-4 space-y-1 ${sidebarCollapsed ? "lg:mt-10" : ""}`}>{navItems.map(([id, label, Icon]) => <button key={id} onClick={() => go(id)} className={`flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold ${view === id ? "bg-[#f0edff] text-[#5e4bc1]" : "text-[#6d7891] hover:bg-[#f7f8fc]"}`}><Icon className="shrink-0" size={18} /><span className={`min-w-0 flex-1 ${sidebarCollapsed ? "lg:hidden" : ""}`}>{label}</span>{id === "live-sessions" ? <small className="shrink-0 whitespace-nowrap text-[9px] font-extrabold text-[#a0a8b9]">PLANNING</small> : null}</button>)}</nav><div className="absolute bottom-6 left-4 right-4 border-t border-[#edf0f5] pt-4"><button onClick={logOut} className="flex w-full items-center gap-3 px-3 py-2 text-sm font-bold text-[#7b879e] hover:text-[#bd5050]"><LogOut size={18} />Log out</button></div></aside>{menuOpen && <button aria-label="Close menu overlay" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-30 bg-[#18223c]/20 lg:hidden" />}<main className={`min-h-screen pt-28 lg:pt-16 ${sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"}`}><div className="mx-auto max-w-[1180px] px-5 py-7 lg:mx-0 lg:max-w-none lg:px-8"><nav aria-label="Dashboard navigation" className="-mx-5 mb-5 flex gap-2 overflow-x-auto border-b border-[#e4e8f1] bg-white px-5 pb-3 lg:hidden">{navItems.map(([id, label, Icon]) => <button key={id} onClick={() => go(id)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${view === id ? "bg-[#f0edff] text-[#5e4bc1]" : "text-[#6d7891]"}`}><Icon size={15} />{label}</button>)}</nav><div className="mb-6 flex items-center justify-between"><p className="text-sm text-[#7c879e]">Your focused preparation workspace</p><span className="rounded-full bg-[#f0edff] px-3 py-1 text-xs font-bold text-[#6553c4]">{viewLabel}</span></div>{content}</div></main></div>;
 }
 

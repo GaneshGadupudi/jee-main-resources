@@ -5,6 +5,7 @@ import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { getSupabase } from "@/lib/supabase";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -20,7 +21,7 @@ export default function SignupPage() {
     try {
       const { data, error } = await getSupabase().auth.signUp({ email: email.trim(), password, options: { data: { name: name.trim() } } });
       if (error) throw error;
-      if (data.session) window.location.href = "/dashboard";
+      if (data.session) window.location.href = hasCompletedOnboarding(data.user) ? "/dashboard" : "/onboarding";
       else setMessage("Account created. Check your email to confirm it, then log in.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to create your account.");
