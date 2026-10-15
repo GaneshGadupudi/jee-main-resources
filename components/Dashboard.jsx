@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
 import StudyTask from "@/components/StudyTask";
 import WeeklyChallenge from "@/components/WeeklyChallenge";
 import MockTests from "@/components/MockTests";
@@ -102,25 +101,18 @@ function DashboardApp() {
     let active = true;
     async function loadDashboard() {
       try {
-        const [{ data: authData }] = await Promise.all([getSupabase().auth.getUser()]);
+        const authResponse = await fetch("/api/auth/session");
+        const authData = await authResponse.json();
         if (!active) return;
         const user = authData.user;
-        const savedProfile = user?.user_metadata?.student_profile;
-        const savedExams = user?.user_metadata?.exams;
+        const preferencesResponse = await fetch("/api/preferences");
+        const preferencesData = preferencesResponse.ok ? await preferencesResponse.json() : {};
+        const saved = preferencesData.preferences;
         setProfile((current) => ({
           ...current,
-          name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Student",
+          name: user?.name || user?.email?.split("@")[0] || "Student",
           email: user?.email || "",
-          ...(savedProfile ? {
-            target: savedProfile.targetExam || current.target,
-            date: savedProfile.examDate || current.date,
-            hours: savedProfile.dailyHours || current.hours,
-            stage: savedProfile.prepStage || current.stage,
-            strengths: savedProfile.strengths || current.strengths,
-            focus: savedProfile.focus || current.focus,
-            goal: savedProfile.goal || current.goal,
-          } : {}),
-          ...(Array.isArray(savedExams) ? { exams: savedExams } : {}),
+          ...(saved || {}),
         }));
         setCompleted(JSON.parse(localStorage.getItem("jee-completed") || "[]"));
         setMistakes(JSON.parse(localStorage.getItem("jee-mistakes") || "[]"));
@@ -140,8 +132,7 @@ function DashboardApp() {
   const update = (key, value, setter) => { setter(value); localStorage.setItem(key, JSON.stringify(value)); };
   const go = (next) => { setView(next); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const logOut = async () => {
-    const { error } = await getSupabase().auth.signOut();
-    if (error) return;
+    await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/";
   };
   const markDone = (id) => { const today = dayKey(); if (!doneLog.some((entry) => entry.d === today && entry.id === id)) update("jee-done", [...doneLog, { d: today, id, m: planTasks.find((task) => task.id === id)?.minutes || 0 }], setDoneLog); };
@@ -326,22 +317,9 @@ function DashboardApp() {
       <div className="mt-7 flex items-center gap-4">
         <Button onClick={async () => {
           setProfileMessage("");
-          const { error } = await getSupabase().auth.updateUser({
-            data: {
-              name: profile.name,
-              exams: profile.exams,
-              student_profile: {
-                targetExam: profile.target,
-                examDate: profile.date,
-                prepStage: profile.stage,
-                dailyHours: profile.hours,
-                strengths: profile.strengths,
-                focus: profile.focus,
-                goal: profile.goal,
-              },
-            },
-          });
-          if (error) setProfileMessage(error.message);
+          const response = await fetch("/api/preferences", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
+          const result = await response.json();
+          if (!response.ok) setProfileMessage(result.error || "Unable to save preferences.");
           else setProfileMessage("Preferences saved successfully.");
         }}>Save my preferences</Button>
         {profileMessage && <p role="status" className="text-xs font-bold text-[#2c967b]">{profileMessage}</p>}

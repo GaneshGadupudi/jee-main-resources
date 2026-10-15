@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useEffect, useState } from "react";
-import { getSupabase } from "@/lib/supabase";
 
 export default function SiteHeader({ active = "" }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,16 +12,14 @@ export default function SiteHeader({ active = "" }) {
   const links = [["Home", "/"], ["About", "/about"], ["Features", "/features"], ["Resources", "/resources"], ["FAQ", "/faq"]];
 
   useEffect(() => {
-    getSupabase().auth.getUser().then(({ data }) => { setUser(data.user || null); setAuthReady(true); }).catch(() => { setUser(null); setAuthReady(true); });
-    const { data: listener } = getSupabase().auth.onAuthStateChange((_event, session) => setUser(session?.user || null));
-    return () => listener.subscription.unsubscribe();
+    fetch("/api/auth/session").then((response) => response.json()).then((data) => { setUser(data.user || null); setAuthReady(true); }).catch(() => { setUser(null); setAuthReady(true); });
   }, []);
 
   const logOut = async () => {
-    const { error } = await getSupabase().auth.signOut();
-    if (!error) window.location.href = "/";
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/";
   };
-  const firstName = user?.user_metadata?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
+  const firstName = user?.name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
 
   return <header className="sticky top-0 z-30 border-b border-[#dfe5ef] bg-white/95 backdrop-blur">
     <div className="mx-auto flex min-h-16 max-w-[1120px] flex-wrap items-center gap-3 px-4 sm:px-5">

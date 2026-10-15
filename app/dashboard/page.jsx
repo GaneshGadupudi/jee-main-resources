@@ -3,22 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Dashboard from "@/components/Dashboard";
-import { getSupabase } from "@/lib/supabase";
-import { hasCompletedOnboarding } from "@/lib/onboarding";
 
 export default function DashboardPage() {
   const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     let active = true;
-    getSupabase().auth.getUser().then(({ data }) => {
+    fetch("/api/auth/session").then((response) => response.json()).then((data) => {
       if (!active) return;
       if (!data.user) {
         setStatus("unauthenticated");
-        return;
-      }
-      if (!hasCompletedOnboarding(data.user)) {
-        window.location.href = "/onboarding";
         return;
       }
       setStatus("authenticated");
