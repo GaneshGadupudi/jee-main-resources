@@ -7,13 +7,14 @@ import { useTestRunner } from "@/components/useTestRunner";
 import TestRoom, { Card, primary, soft } from "@/components/TestRoom";
 import TestResult from "@/components/TestResult";
 import ExamDeviceNotice from "@/components/ExamDeviceNotice";
+import Leaderboard, { ContestLeaderboard } from "@/components/Leaderboard";
 import { isPhoneDevice } from "@/lib/exam-device";
 
-export default function WeeklyChallenge({ registered, setRegistered, onAddMistakes, onFinish, onReason, onExit }) {
+export default function WeeklyChallenge({ registered, setRegistered, history, activeSession, ready, onHistory, onActive, onAddMistakes, onFinish, onReason, onExit }) {
   const { upcoming, past } = useMemo(() => getContests(new Date()), []);
   const contests = useMemo(() => [upcoming, ...past], [upcoming, past]);
-  const runner = useTestRunner({ activeKey: "jee-contest-active", historyKey: "jee-contest-history", contests, onAddMistakes, onFinish });
-  const { now, history, active, resultId, setResultId, contestOf } = runner;
+  const runner = useTestRunner({ type: "contest", contests, history, activeSession, ready, onHistory, onActive, onAddMistakes, onFinish });
+  const { now, active, resultId, setResultId, contestOf } = runner;
   const [openSolutions, setOpenSolutions] = useState(null);
   const [deviceBlocked, setDeviceBlocked] = useState(false);
 
@@ -33,7 +34,7 @@ export default function WeeklyChallenge({ registered, setRegistered, onAddMistak
   }
 
   const entry = history.find((item) => item.id === resultId);
-  if (entry) return <TestResult eyebrow={entry.virtual ? "VIRTUAL CONTEST RESULT" : "CONTEST RESULT"} entry={entry} questions={contestOf(entry.contestId).questions} backLabel="Back to weekly challenge" onBack={() => setResultId(null)} onReason={onReason} note="Rank and percentile appear here once other students have taken this contest. Wrong answers were added to your mistake book." />;
+  if (entry) return <div className="space-y-5"><TestResult eyebrow={entry.virtual ? "VIRTUAL CONTEST RESULT" : "CONTEST RESULT"} entry={entry} questions={contestOf(entry.contestId).questions} backLabel="Back to weekly challenge" onBack={() => setResultId(null)} onReason={onReason} note="Wrong answers were added to your mistake book." /><Leaderboard contestId={entry.contestId} title={entry.title} /></div>;
 
   const live = now >= upcoming.start.getTime() && now <= upcoming.end.getTime();
   const diff = Math.max(0, upcoming.start.getTime() - now);
@@ -62,11 +63,13 @@ export default function WeeklyChallenge({ registered, setRegistered, onAddMistak
       <Card>
         <p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">YOUR CONTEST STATS</p>
         <div className="mt-4 grid grid-cols-3 gap-3">{[["Attempted", stats.count], ["Best score", stats.best ?? "–"], ["Avg accuracy", stats.accuracy === null ? "–" : `${stats.accuracy}%`]].map(([label, value]) => <div key={label} className="rounded-xl bg-[#fafbfe] p-3"><strong className="block text-xl text-[#202a45]">{value}</strong><small className="text-[10px] font-semibold text-[#8994aa]">{label}</small></div>)}</div>
-        <p className="mt-4 text-[11px] leading-5 text-[#8994aa]">Rank and percentile are shown once other students have taken the same contest. Your attempts are stored in this browser.</p>
+        <p className="mt-4 text-[11px] leading-5 text-[#8994aa]">Rank and percentile are shown once other students have taken the same contest. Your attempts are saved to your account.</p>
         <p className="mt-4 text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">HOW IT WORKS</p>
         <ol className="mt-2 space-y-1.5 text-xs leading-5 text-[#73809b]"><li>1. Register before the contest opens.</li><li>2. Enter during the window. The clock runs for everyone.</li><li>3. Answer, mark for review, and submit. Time-up submits automatically.</li><li>4. Review solutions. Wrong answers go to your mistake book.</li></ol>
       </Card>
     </div>
+
+    <ContestLeaderboard contests={contests} defaultId={live ? upcoming.id : past[0]?.id} />
 
     <Card>
       <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">PAST WEEKLY CONTESTS</p><h2 className="mt-1 text-lg font-extrabold text-[#27314c]">Attempt previous contests virtually</h2><p className="mt-2 text-sm text-[#73809b]">Take an earlier contest against the clock, any time, or revisit its questions.</p></div><BookOpen className="shrink-0 text-[#7564ed]" size={20} /></div>

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, BookOpen, CheckCheck, ClipboardList, Clock3, Flame, ListChecks, Trophy, Video } from "lucide-react";
-import { load, save } from "@/lib/contest";
 import { buildNotifications } from "@/lib/notifications";
 
 const icons = { trophy: Trophy, video: Video, plan: ListChecks, flame: Flame, book: BookOpen, clipboard: ClipboardList, clock: Clock3 };
@@ -13,44 +12,28 @@ const tones = {
   red: "bg-[#ffe8eb] text-[#c7586d]",
   blue: "bg-[#e8f0ff] text-[#4c74c7]",
 };
-const READ_KEY = "jee-notif-read";
 const READ_RETENTION_MS = 30 * 86400000;
 const ARCHIVE_RETENTION_MS = 90 * 86400000;
 
-function loadReadRecords() {
-  const stored = load(READ_KEY, []);
-  const records = Array.isArray(stored)
-    ? stored.reduce((result, entry) => {
-      if (typeof entry === "string") result[entry] = { readAt: Date.now() };
-      else if (entry && typeof entry.id === "string") result[entry.id] = { readAt: Number(entry.readAt) || Date.now() };
-      return result;
-    }, {})
-    : stored && typeof stored === "object" ? Object.fromEntries(Object.entries(stored).map(([id, value]) => [
-      id,
-      typeof value === "object" ? value : { readAt: Number(value) || Date.now() },
-    ])) : {};
+// Read notifications are stored on the server; after 30 days they move to the archive, after 90 days they disappear.
+function withRetention(records) {
   const now = Date.now();
   const cutoff = now - READ_RETENTION_MS;
   const archiveCutoff = now - ARCHIVE_RETENTION_MS;
-  return Object.fromEntries(Object.entries(records)
-    .map(([id, record]) => [id, { readAt: Number(record.readAt) || now, archived: Boolean(record.archived) || Number(record.readAt) < cutoff }])
+  return Object.fromEntries(Object.entries(records || {})
+    .map(([id, record]) => [id, { readAt: Number(record.readAt) || now, archived: Number(record.readAt) < cutoff }])
     .filter(([, record]) => record.readAt >= archiveCutoff));
 }
 
-export default function NotificationBell({ ready, onOpenView, ...data }) {
+export default function NotificationBell({ ready, onOpenView, readRecords, onMarkRead, contestHistory, mockHistory, ...data }) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [read, setRead] = useState({});
-  const [histories, setHistories] = useState({ contestHistory: [], mockHistory: [] });
   const box = useRef(null);
 
-  const refresh = () => {
-    setNow(Date.now());
-    setRead(loadReadRecords());
-    setHistories({ contestHistory: load("jee-contest-history", []), mockHistory: load("jee-mock-history", []) });
-  };
-  useEffect(() => { refresh(); const timer = setInterval(refresh, 30000); return () => clearInterval(timer); }, []);
+  const refresh = () => setNow(Date.now());
+  useEffect(() => { const timer = setInterval(refresh, 30000); return () => clearInterval(timer); }, []);
+  const read = useMemo(() => withRetention(readRecords), [readRecords, now]);
 
   useEffect(() => {
     if (!open) return;
@@ -62,17 +45,15 @@ export default function NotificationBell({ ready, onOpenView, ...data }) {
   }, [open]);
 
   // Nothing is built until the dashboard has loaded the student's saved data, so server and client render the same.
-  const items = useMemo(() => (ready ? buildNotifications({ now, ...histories, ...data }) : []),
+  const items = useMemo(() => (ready ? buildNotifications({ now, contestHistory, mockHistory, ...data }) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ready, now, histories, data.registered, data.planTasks, data.completed, data.mistakes, data.streak, data.todayCount, data.examDays]);
+    [ready, now, contestHistory, mockHistory, data.registered, data.planTasks, data.completed, data.mistakes, data.streak, data.todayCount, data.examDays]);
   const activeItems = items.filter((item) => !read[item.id]?.archived);
   const unread = activeItems.filter((item) => !read[item.id]);
   const visibleItems = showAll ? activeItems : unread;
   const markRead = (ids) => {
     const readAt = Date.now();
-    const next = { ...read, ...Object.fromEntries(ids.map((id) => [id, { readAt }])) };
-    setRead(next);
-    save(READ_KEY, next);
+    onMarkRead(ids.map((id) => ({ id, readAt })));
   };
 
   return <div ref={box} className="relative">

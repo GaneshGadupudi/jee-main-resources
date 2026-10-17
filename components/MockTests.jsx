@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, ClipboardList } from "lucide-react";
 import { MARKS, clock } from "@/lib/contest";
 import { getMockTests } from "@/lib/mock";
+import { predictedScore } from "@/lib/progress";
 import { useTestRunner } from "@/components/useTestRunner";
 import TestRoom, { Card, primary, soft } from "@/components/TestRoom";
 import TestResult from "@/components/TestResult";
@@ -17,10 +18,10 @@ function schedule(daysLeft) {
   return { cadence: "Once every 2 weeks", tip: "There is plenty of time. Build chapters first and use a mock every two weeks to check progress." };
 }
 
-export default function MockTests({ daysLeft, onAddMistakes, onFinish, onReason, onExit }) {
+export default function MockTests({ daysLeft, history, activeSession, ready, onHistory, onActive, onAddMistakes, onFinish, onReason, onExit }) {
   const tests = useMemo(() => getMockTests(), []);
-  const runner = useTestRunner({ activeKey: "jee-mock-active", historyKey: "jee-mock-history", contests: tests, onAddMistakes, onFinish });
-  const { now, history, active, resultId, setResultId, contestOf } = runner;
+  const runner = useTestRunner({ type: "mock", contests: tests, history, activeSession, ready, onHistory, onActive, onAddMistakes, onFinish });
+  const { now, active, resultId, setResultId, contestOf } = runner;
   const [deviceBlocked, setDeviceBlocked] = useState(false);
 
   const startTest = (test) => {
@@ -54,6 +55,7 @@ export default function MockTests({ daysLeft, onAddMistakes, onFinish, onReason,
   }, {})).sort((a, b) => a.correct / a.total - b.correct / b.total);
   const trend = [...history].reverse().slice(-6);
   const maxScore = tests[0].questions.length * MARKS.correct;
+  const prediction = predictedScore({ mocks: history, maxScore });
 
   return <div className="space-y-5">
     <div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">PRACTISE UNDER PRESSURE</p><h1 className="text-3xl font-extrabold text-[#18223c]">Mock tests</h1><p className="mt-2 text-sm text-[#73809b]">Choose a test, review its solutions after completion, or retake it whenever you need.</p></div>
@@ -99,6 +101,35 @@ export default function MockTests({ daysLeft, onAddMistakes, onFinish, onReason,
         <p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">CHAPTERS TO REVISE</p>
         {chapterRows.length ? <div className="mt-4 space-y-3">{chapterRows.slice(0, 4).map((row) => <div key={row.chapter}><div className="flex justify-between gap-3 text-sm"><span className="font-bold text-[#46516c]">{row.chapter} <small className="font-normal text-[#8994aa]">{row.subject}</small></span><span className="text-xs text-[#73809b]">{Math.round((row.correct / row.total) * 100)}%</span></div><div className="mt-2 h-1.5 rounded-full bg-[#edf0f6]"><div className={`h-full rounded-full ${row.correct / row.total >= 0.6 ? "bg-[#4bbd99]" : "bg-[#e0788a]"}`} style={{ width: `${(row.correct / row.total) * 100}%` }} /></div></div>)}</div> : <p className="mt-3 text-sm text-[#73809b]">Your weakest chapters will appear here after a mock test.</p>}
       </Card>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      {prediction.available ? (
+        <Card>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">PREDICTED SCORE</p>
+              <h2 className="mt-1 text-lg font-extrabold text-[#27314c]">Your likely range</h2>
+              <p className="mt-1 text-xs text-[#73809b]">Based on your last {prediction.basedOn} mock test{prediction.basedOn === 1 ? "" : "s"}.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[#e4e8f1] bg-white p-4">
+              <small className="block text-xs font-semibold text-[#7b879e]">Estimated range</small>
+              <strong className="mt-1 block text-2xl text-[#202a45]">{prediction.predLo} – {prediction.predHi} / {maxScore}</strong>
+            </div>
+            <div className="rounded-2xl border border-[#e4e8f1] bg-white p-4">
+              <small className="block text-xs font-semibold text-[#7b879e]">Your recent average</small>
+              <strong className="mt-1 block text-2xl text-[#202a45]">{prediction.avg} / {maxScore}</strong>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-[#73809b]">Your mocks so far span {prediction.lo} – {prediction.hi}. The more mocks you sit, the tighter this range gets.</p>
+        </Card>
+      ) : (
+        <Card>
+          <p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">PREDICTED SCORE</p>
+          <p className="mt-4 text-sm text-[#73809b]">Sit {prediction.need} more mock test{prediction.need === 1 ? "" : "s"} to unlock a predicted score range.</p>
+        </Card>
+      )}
     </div>
 
     <Card>
