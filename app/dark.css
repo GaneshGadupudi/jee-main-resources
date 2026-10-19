@@ -2,13 +2,14 @@
 [data-theme="dark"] .bg-\[\#ddf6ed\] { background-color: #2b4b40; }
 [data-theme="dark"] .bg-\[\#e4e8f1\] { background-color: #303646; }
 [data-theme="dark"] .bg-\[\#e4f8f5\] { background-color: #2a4844; }
-[data-theme="dark"] .bg-\[\#e6fcf5\] { background-color: #28463d; }
 [data-theme="dark"] .bg-\[\#e7e1ff\] { background-color: #2f2947; }
 [data-theme="dark"] .bg-\[\#e8f0ff\] { background-color: #283245; }
 [data-theme="dark"] .bg-\[\#e9f8f1\] { background-color: #294739; }
+[data-theme="dark"] .bg-\[\#ebedf0\] { background-color: #34383e; }
 [data-theme="dark"] .bg-\[\#edf0f6\] { background-color: #2c3442; }
 [data-theme="dark"] .bg-\[\#eeeaff\] { background-color: #2d2744; }
 [data-theme="dark"] .bg-\[\#eef0ff\] { background-color: #262a43; }
+[data-theme="dark"] .bg-\[\#efeafc\] { background-color: #302845; }
 [data-theme="dark"] .bg-\[\#f0edff\] { background-color: #2b2743; }
 [data-theme="dark"] .bg-\[\#f1efff\] { background-color: #2a2643; }
 [data-theme="dark"] .bg-\[\#f1f3f7\] { background-color: #2d333f; }
@@ -45,6 +46,7 @@
 [data-theme="dark"] .border-\[\#efc3c3\] { border-color: #673737; }
 [data-theme="dark"] .border-\[\#f0d9a6\] { border-color: #71613d; }
 [data-theme="dark"] .border-\[\#f0e4c9\] { border-color: #645636; }
+[data-theme="dark"] .divide-\[\#e6e1f7\] > :not(:last-child) { border-color: #382f58; }
 [data-theme="dark"] .divide-\[\#edf0f5\] > :not(:last-child) { border-color: #353e4c; }
 [data-theme="dark"] .from-\[\#eef0ff\] { --tw-gradient-from: #262a43; }
 [data-theme="dark"] .from-\[\#f1efff\] { --tw-gradient-from: #2a2643; }
@@ -54,6 +56,7 @@
 [data-theme="dark"] .hover\:bg-\[\#f3f1ff\]:hover { background-color: #2a2642; }
 [data-theme="dark"] .hover\:bg-\[\#f4f5fb\]:hover { background-color: #262a42; }
 [data-theme="dark"] .hover\:bg-\[\#f5f2ff\]:hover { background-color: #2c2642; }
+[data-theme="dark"] .hover\:bg-\[\#f7f5ff\]:hover { background-color: #2b2541; }
 [data-theme="dark"] .hover\:bg-\[\#f7f6ff\]:hover { background-color: #282540; }
 [data-theme="dark"] .hover\:bg-\[\#f7f8fc\]:hover { background-color: #111525; }
 [data-theme="dark"] .hover\:bg-\[\#faf9ff\]:hover { background-color: #29243f; }
@@ -61,6 +64,7 @@
 [data-theme="dark"] .hover\:border-\[\#bcb2f0\]:hover { border-color: #433b6d; }
 [data-theme="dark"] .hover\:border-\[\#c9c6f5\]:hover { border-color: #383563; }
 [data-theme="dark"] .hover\:text-\[\#5d52c7\]:hover { color: #9891d4; }
+[data-theme="dark"] .hover\:text-\[\#5e4bc1\]:hover { color: #9d93d2; }
 [data-theme="dark"] .hover\:text-\[\#bd4a5a\]:hover { color: #d1949d; }
 [data-theme="dark"] .hover\:text-\[\#bd5050\]:hover { color: #d09595; }
 [data-theme="dark"] .open\:border-\[\#c9c6f5\] { border-color: #383563; }

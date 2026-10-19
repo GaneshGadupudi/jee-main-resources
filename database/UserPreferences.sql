@@ -19,6 +19,6 @@ BEGIN
   );
 END;
 
-// Idempotent: add the goal-percentile column to databases created before it existed.
+-- Idempotent: add the goal-percentile column to databases created before it existed.
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE name = N'GoalPercentile' AND object_id = OBJECT_ID(N'dbo.UserPreferences'))
 ALTER TABLE dbo.UserPreferences ADD GoalPercentile TINYINT NULL;

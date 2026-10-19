@@ -13,7 +13,7 @@ const pool = await sql.connect({
 });
 
 // Order matters: everything references dbo.Users.
-const FILES = ["Users", "Auth", "UserPreferences", "StudyPlan", "Practice", "Tests", "Engagement", "PYQ"];
+const FILES = ["Users", "Auth", "UserPreferences", "StudyPlan", "Practice", "Tests", "Engagement", "PYQ", "StudyCircle"];
 
 for (const name of FILES) {
   await pool.request().batch(await readFile(new URL(`../database/${name}.sql`, import.meta.url), "utf8"));

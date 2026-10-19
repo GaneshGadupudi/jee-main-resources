@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BookOpen, CheckCheck, ClipboardList, Clock3, Flame, ListChecks, Trophy, Video } from "lucide-react";
+import { Bell, BookOpen, CheckCheck, ClipboardList, Clock3, Flame, ListChecks, Trophy, Users, Video } from "lucide-react";
 import { buildNotifications } from "@/lib/notifications";
 
-const icons = { trophy: Trophy, video: Video, plan: ListChecks, flame: Flame, book: BookOpen, clipboard: ClipboardList, clock: Clock3 };
+const icons = { trophy: Trophy, video: Video, plan: ListChecks, flame: Flame, book: BookOpen, clipboard: ClipboardList, clock: Clock3, users: Users };
 const tones = {
   green: "bg-[#ddf6ed] text-[#2c967b]",
   violet: "bg-[#f0edff] text-[#6958d2]",
@@ -47,7 +47,7 @@ export default function NotificationBell({ ready, onOpenView, readRecords, onMar
   // Nothing is built until the dashboard has loaded the student's saved data, so server and client render the same.
   const items = useMemo(() => (ready ? buildNotifications({ now, contestHistory, mockHistory, ...data }) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ready, now, contestHistory, mockHistory, data.registered, data.planTasks, data.completed, data.mistakes, data.streak, data.todayCount, data.examDays]);
+    [ready, now, contestHistory, mockHistory, data.registered, data.planTasks, data.completed, data.mistakes, data.streak, data.todayCount, data.examDays, data.groupInvites]);
   const activeItems = items.filter((item) => !read[item.id]?.archived);
   const unread = activeItems.filter((item) => !read[item.id]);
   const visibleItems = showAll ? activeItems : unread;

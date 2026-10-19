@@ -15,10 +15,12 @@ import { buildPlan, daysUntil, planMode, todayKey, weightLabel, allChapters } fr
 import { MARKS } from "@/lib/contest";
 import { getMockTests } from "@/lib/mock";
 import PyqQuestionCard from "@/components/PyqQuestionCard";
+import StudyCircle from "@/components/StudyCircle";
+import AiTutor from "@/components/AiTutor";
 import {
   BookOpen, BrainCircuit, Check, ChevronRight, CircleHelp, Clock3,
   Flame, Home, LayoutDashboard, ListChecks, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Play, 
-  BookMarked, Sparkles, Target, Trophy, UserRound, X, Zap,
+  BookMarked, Sparkles, Target, Trophy, UserRound, Users, X, Zap,
 } from "lucide-react";
 
 const questions = [
@@ -31,7 +33,7 @@ const navItems = [
   ["overview", "Overview", Home], ["study-plan", "Study plan", ListChecks],
   ["practice", "Daily practice", BrainCircuit], ["pyq", "PYQ practice", BookMarked], ["mock-tests", "Mock tests", Clock3],
   ["challenge", "Weekly challenge", Trophy], ["live-sessions", "Live sessions", CircleHelp],
-  ["mistakes", "Mistake book", BookOpen],
+  ["mistakes", "Mistake book", BookOpen], ["study-circle", "Study circle", Users],
   ["progress", "Progress", LayoutDashboard], ["profile", "My profile", UserRound],
 ];
 
@@ -122,6 +124,7 @@ function DashboardApp() {
   const [histories, setHistories] = useState({ contest: [], mock: [] });
   const [activeTests, setActiveTests] = useState({ contest: null, mock: null });
   const [notificationReads, setNotificationReads] = useState({});
+  const [groupInvites, setGroupInvites] = useState([]);
   const [mentorInfo, setMentorInfo] = useState(null);
   const [weeklySummaryStatus, setWeeklySummaryStatus] = useState(null);
 
@@ -171,6 +174,17 @@ function DashboardApp() {
     }
     loadDashboard();
     return () => { active = false; };
+  }, []);
+
+  // Group invitations arrive from other students, so check for new ones every minute and whenever the tab is shown again.
+  useEffect(() => {
+    let active = true;
+    const check = () => fetch("/api/me/circle?invites=1").then((r) => (r.ok ? r.json() : null)).then((data) => { if (active && data?.invites) setGroupInvites(data.invites); }).catch(() => {});
+    check();
+    const timer = setInterval(check, 60000);
+    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { active = false; clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
 
   const go = (next) => { setView(next); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -254,9 +268,7 @@ function DashboardApp() {
 
   // Build month groups for the last 12 months
   const endDate = new Date();
-  const startDate = new Date();
-  startDate.setMonth(endDate.getMonth() - 11);
-  startDate.setDate(1);
+  const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
 
   const monthGroups = [];
   let cursor = new Date(startDate);
@@ -297,7 +309,7 @@ function DashboardApp() {
       weeks,
     });
 
-    cursor.setMonth(cursor.getMonth() + 1);
+    cursor = new Date(year, month + 1, 1);
   }
 
   const weekTargetHours = Math.round(stats.weekTarget / 60);
@@ -331,7 +343,7 @@ function DashboardApp() {
     ? <StudyTask key={activePlanTask.id} task={activePlanTask} nextTitle={planTasks[planTasks.indexOf(activePlanTask) + 1]?.title} onBack={() => setActiveTaskId(null)} onAnswer={(a) => logAnswers([{ d: dayKey(), src: "plan", s: a.subject, c: a.chapter, q: a.text, ok: a.correct }])} onWrong={addMistake} onReason={setMistakeReasonFor} onComplete={(result) => finishTask(activePlanTask, result)} />
     : <div className="space-y-5"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">PLAN YOUR PREPARATION</p><h1 className="text-3xl font-extrabold text-[#18223c]">Today&apos;s study plan</h1><p className="mt-2 text-sm text-[#73809b]">A clear, manageable next step, planned around your {profile.hours} available study hours.</p></div><span className="text-xs text-[#8994aa]">{todayLabel}</span></div><Card className="border-[#dcd8fb] bg-gradient-to-r from-[#f4f1ff] to-white"><p className="text-sm text-[#59647d]"><strong>{examDays} days to your exam · {mode.label}.</strong> {mode.note}</p></Card><Card><div className="mb-4 flex justify-between"><div><p className="text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">DAILY TASKS</p><h2 className="mt-1 text-lg font-extrabold text-[#27314c]">Focus for today</h2></div><span className="text-xs text-[#8994aa]">{planTasks.length} tasks</span></div>{planTasks.map((task, index) => { const unlocked = index === 0 || completed.includes(planTasks[index - 1].id); const done = completed.includes(task.id); const score = scores[task.id]; return <div key={task.id} className="flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-[#edf0f5] py-4">{task.type === "chapter" ? <span className={`mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-md border ${done ? "border-[#9ad7c9] bg-[#ddf6ed] text-[#2c967b]" : "border-[#cdd4e2] bg-white text-transparent"}`}><Check size={12} /></span> : <input type="checkbox" checked={done} disabled={!unlocked} onChange={() => toggleTask(task.id)} className="mt-1 h-5 w-5 shrink-0 accent-[#7564ed] disabled:opacity-50" aria-label={`${done ? "Complete" : "Not started"}: ${task.title}`} />}<span className={`min-w-0 flex-1 basis-[calc(100%-2rem)] text-sm font-bold sm:basis-0 ${done ? "text-[#2c967b] line-through" : "text-[#46516c]"}`}>{task.title}<small className="mt-1 block break-words text-[10px] font-normal leading-4 text-[#8994aa]">{taskMeta(task)}</small></span><div className="flex w-full items-center justify-between gap-3 pl-8 sm:w-auto sm:pl-0"><span className={`text-[10px] leading-4 sm:w-44 sm:text-right ${unlocked ? "text-[#8994aa]" : "text-[#aeb5c2]"}`}>{done ? (score?.total ? `Completed · ${score.correct}/${score.total} correct` : "Completed") : unlocked ? "Not started" : "Complete previous task to unlock"}</span><span className="flex w-28 shrink-0 justify-end">{task.type === "chapter" && <button disabled={!unlocked} onClick={() => setActiveTaskId(task.id)} className="w-24 rounded-lg bg-[#f0edff] px-3 py-2 text-center text-xs font-extrabold text-[#5e4bc1] hover:bg-[#e5e0ff] disabled:cursor-not-allowed disabled:opacity-40">{done ? "Review" : "Start"}</button>}{task.type === "mistakes" && unlocked && <button onClick={() => go("mistakes")} className="w-24 rounded-lg bg-[#f0edff] px-3 py-2 text-center text-xs font-extrabold text-[#5e4bc1] hover:bg-[#e5e0ff]">Open book</button>}</span></div></div>; })}<div className="mt-3 h-1.5 rounded-full bg-[#edf0f6]"><div className="h-full rounded-full bg-[#7564ed]" style={{ width: `${Math.round((planDone / planTotal) * 100)}%` }} /></div><p className="mt-2 text-right text-[10px] text-[#8994aa]">{planDone} of {planTotal} complete</p></Card><Card className="max-w-2xl border-[#dcd8fb] bg-gradient-to-r from-[#f4f1ff] to-white"><p className="text-sm text-[#59647d]"><strong>Make the plan yours.</strong> Your exam date, available hours and strong or weak subjects help shape what you work on next.</p><button onClick={() => go("profile")} className="mt-3 text-xs font-extrabold text-[#6958d2]">Edit preferences →</button></Card></div>;
 
-  const practice = <div className="space-y-5"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">BUILD YOUR DAILY HABIT</p><h1 className="text-3xl font-extrabold text-[#18223c]">Daily practice</h1><p className="mt-2 text-sm text-[#73809b]">Answer, understand your mistake, and keep your revision list current.</p></div><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_290px]"><Card><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-extrabold text-[#7564ed]">{currentQuestion.subject.toUpperCase()}</span><span className="text-xs text-[#8994aa]">Question {practiceIndex + 1} of {questions.length}</span></div><p className="mt-4 text-xs font-bold text-[#7564ed]">{currentQuestion.chapter}</p><h2 className="mt-3 text-xl font-extrabold leading-8 text-[#25304b]">{currentQuestion.text}</h2><div className="mt-6 grid gap-3 sm:grid-cols-2">{currentQuestion.options.map((option, index) => <button key={option} onClick={() => choosePracticeAnswer(index)} className={`min-h-14 rounded-xl border p-4 text-left text-sm font-semibold leading-6 transition ${practiceAnswer === index ? "border-[#8273df] bg-[#f1efff]" : "border-[#e4e8f1] bg-[#fafbfe] hover:border-[#bcb2f0]"}`}>{String.fromCharCode(65 + index)}. {option}</button>)}</div>{practiceAnswer !== null && <div className={`mt-5 rounded-xl p-4 text-sm leading-6 ${practiceAnswer === currentQuestion.answer ? "bg-[#e4f8f5] text-[#247b70]" : "bg-[#fff1f1] text-[#a34e5c]"}`}>{practiceAnswer === currentQuestion.answer ? "Correct! Great work." : <><div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center"><span className="min-w-0 break-words">Added to your mistake book. Tell us what went wrong so we can target it.</span><div className="relative w-full min-w-0 sm:w-auto sm:max-w-[15rem]"><button type="button" aria-expanded={mistakeReasonOpen} onClick={() => setMistakeReasonOpen((open) => !open)} className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#efc3c3] bg-white p-2 text-left text-xs text-[#59647d]"><span className="min-w-0 truncate">{mistakeReason || "Why was it wrong?"}</span><ChevronRight size={14} className={`shrink-0 transition-transform ${mistakeReasonOpen ? "rotate-90" : ""}`} /></button>{mistakeReasonOpen && <div role="listbox" className="mt-1 w-full overflow-hidden rounded-lg border border-[#efc3c3] bg-white shadow-lg">{mistakeReasons.map((reason) => <button key={reason} type="button" role="option" aria-selected={mistakeReason === reason} onClick={() => { setMistakeReason(reason); setMistakeReasonOpen(false); setMistakeReasonFor(currentQuestion.text, reason); }} className="block w-full px-3 py-2 text-left text-xs text-[#59647d] hover:bg-[#f5f2ff]">{reason}</button>)}</div>}</div></div></>}</div>}<div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0f5] pt-5"><span className="text-xs text-[#8994aa]">{practiceAnswer === null ? "Choose an answer to continue" : practiceAnswer === currentQuestion.answer ? "Answer checked" : "Tell us why it was wrong to continue"}</span><Button disabled={practiceAnswer === null || practiceIndex === questions.length - 1 || (practiceAnswer !== currentQuestion.answer && !mistakeReason)} onClick={nextPracticeQuestion} className="w-full sm:w-auto">{practiceIndex === questions.length - 1 ? "Practice complete" : "Next question"} <ChevronRight size={16} /></Button></div></Card><Card className="h-fit bg-gradient-to-b from-[#f4f1ff] to-white"><div className="flex items-center gap-2 text-[#5e4bc1]"><Sparkles size={18} /><h2 className="font-extrabold">AI tutor</h2></div><p className="mt-3 text-sm leading-6 text-[#68738b]">Ask a small doubt about this question and get a concise hint before checking the answer.</p><textarea placeholder="Type your doubt..." className="mt-4 h-24 w-full resize-y rounded-xl border border-[#ddd8f6] bg-white p-3 text-sm outline-none" /><Button variant="soft" className="mt-3 w-full"><BrainCircuit size={16} /> Get a hint</Button><div className="mt-4 border-t border-[#e6e1f7] pt-4"><p className="text-xs font-bold text-[#59647d]">Still unclear?</p><button onClick={requestMentor} disabled={mentorRequested} className="mt-2 text-sm font-extrabold text-[#6958d2] disabled:opacity-50">Request a mentor</button>{mentorRequested && <p role="status" className="mt-2 rounded-lg bg-[#ddf6ed] p-2 text-xs font-bold text-[#2c967b]">{mentorInfo?.status === "Assigned" ? `Mentor assigned: ${mentorInfo.assignedTo}` : "Mentor requested"}</p>}</div></Card></div></div>;
+  const practice = <div className="space-y-5"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">BUILD YOUR DAILY HABIT</p><h1 className="text-3xl font-extrabold text-[#18223c]">Daily practice</h1><p className="mt-2 text-sm text-[#73809b]">Answer, understand your mistake, and keep your revision list current.</p></div><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_290px]"><Card><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-extrabold text-[#7564ed]">{currentQuestion.subject.toUpperCase()}</span><span className="text-xs text-[#8994aa]">Question {practiceIndex + 1} of {questions.length}</span></div><p className="mt-4 text-xs font-bold text-[#7564ed]">{currentQuestion.chapter}</p><h2 className="mt-3 text-xl font-extrabold leading-8 text-[#25304b]">{currentQuestion.text}</h2><div className="mt-6 grid gap-3 sm:grid-cols-2">{currentQuestion.options.map((option, index) => <button key={option} onClick={() => choosePracticeAnswer(index)} className={`min-h-14 rounded-xl border p-4 text-left text-sm font-semibold leading-6 transition ${practiceAnswer === index ? "border-[#8273df] bg-[#f1efff]" : "border-[#e4e8f1] bg-[#fafbfe] hover:border-[#bcb2f0]"}`}>{String.fromCharCode(65 + index)}. {option}</button>)}</div>{practiceAnswer !== null && <div className={`mt-5 rounded-xl p-4 text-sm leading-6 ${practiceAnswer === currentQuestion.answer ? "bg-[#e4f8f5] text-[#247b70]" : "bg-[#fff1f1] text-[#a34e5c]"}`}>{practiceAnswer === currentQuestion.answer ? "Correct! Great work." : <><div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center"><span className="min-w-0 break-words">Added to your mistake book. Tell us what went wrong so we can target it.</span><div className="relative w-full min-w-0 sm:w-auto sm:max-w-[15rem]"><button type="button" aria-expanded={mistakeReasonOpen} onClick={() => setMistakeReasonOpen((open) => !open)} className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#efc3c3] bg-white p-2 text-left text-xs text-[#59647d]"><span className="min-w-0 truncate">{mistakeReason || "Why was it wrong?"}</span><ChevronRight size={14} className={`shrink-0 transition-transform ${mistakeReasonOpen ? "rotate-90" : ""}`} /></button>{mistakeReasonOpen && <div role="listbox" className="mt-1 w-full overflow-hidden rounded-lg border border-[#efc3c3] bg-white shadow-lg">{mistakeReasons.map((reason) => <button key={reason} type="button" role="option" aria-selected={mistakeReason === reason} onClick={() => { setMistakeReason(reason); setMistakeReasonOpen(false); setMistakeReasonFor(currentQuestion.text, reason); }} className="block w-full px-3 py-2 text-left text-xs text-[#59647d] hover:bg-[#f5f2ff]">{reason}</button>)}</div>}</div></div></>}</div>}<div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0f5] pt-5"><span className="text-xs text-[#8994aa]">{practiceAnswer === null ? "Choose an answer to continue" : practiceAnswer === currentQuestion.answer ? "Answer checked" : "Tell us why it was wrong to continue"}</span><Button disabled={practiceAnswer === null || practiceIndex === questions.length - 1 || (practiceAnswer !== currentQuestion.answer && !mistakeReason)} onClick={nextPracticeQuestion} className="w-full sm:w-auto">{practiceIndex === questions.length - 1 ? "Practice complete" : "Next question"} <ChevronRight size={16} /></Button></div></Card><Card className="h-fit bg-gradient-to-b from-[#f4f1ff] to-white"><AiTutor key={currentQuestion.text} answered={practiceAnswer !== null} context={{ subject: currentQuestion.subject, chapter: currentQuestion.chapter, text: currentQuestion.text, options: currentQuestion.options, answer: practiceAnswer !== null ? currentQuestion.answer : undefined }}><div className="mt-4 border-t border-[#e6e1f7] pt-4"><p className="text-xs font-bold text-[#59647d]">Still unclear?</p><button onClick={requestMentor} disabled={mentorRequested} className="mt-2 text-sm font-extrabold text-[#6958d2] disabled:opacity-50">Request a mentor</button>{mentorRequested && <p role="status" className="mt-2 rounded-lg bg-[#ddf6ed] p-2 text-xs font-bold text-[#2c967b]">{mentorInfo?.status === "Assigned" ? `Mentor assigned: ${mentorInfo.assignedTo}` : "Mentor requested"}</p>}</div></AiTutor></Card></div></div>;
 
   const mockTests = <MockTests daysLeft={examDays} ready={loaded} history={histories.mock} activeSession={activeTests.mock} onHistory={(next) => setHistories((current) => ({ ...current, mock: next }))} onActive={(next) => setActiveTests((current) => ({ ...current, mock: next }))} onAddMistakes={addMistakes} onFinish={logTest} onReason={setMistakeReasonFor} onExit={() => go("overview")} />;
 
@@ -348,13 +360,13 @@ function DashboardApp() {
       <Metric icon={Clock3} label="Study time this week" value={`${weekHours} hrs`} hint={`Target ${weekTargetHours} hrs`} tone="bg-[#e8f0ff] text-[#4c74c7]" />
     </div>
     <Card>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-extrabold tracking-[.16em] text-[#8993ac]">STRENGTH MAP</p>
           <h2 className="mt-1 text-lg font-extrabold text-[#27314c]">Strong and weak areas</h2>
           <p className="mt-1 text-sm text-[#73809b]">Each chapter is coloured by your practice accuracy — green is strong, amber is moderate, red is weak, grey is not attempted yet.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#46516c]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#46516c] sm:shrink-0 sm:justify-end">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#4bbd99]"></span> Strong</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#fcd34d]"></span> Moderate</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#e0788a]"></span> Weak</span>
@@ -368,7 +380,7 @@ function DashboardApp() {
               <span className="font-bold text-[#46516c]">{subject.subject}</span>
               <span className="text-xs text-[#73809b]">{subject.total ? `${Math.round((subject.correct / subject.total) * 100)}% · ${subject.correct}/${subject.total}` : "No answers yet"}</span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {strength.chapters.filter((chapter) => chapter.subject === subject.subject).map((chapter) => {
                 const fill = chapter.strength === "strong" ? "bg-[#4bbd99]" : chapter.strength === "moderate" ? "bg-[#fcd34d]" : chapter.strength === "weak" ? "bg-[#e0788a]" : "bg-[#f1f3f8]";
                 return (
@@ -489,20 +501,22 @@ function DashboardApp() {
     </div>
     <Card className="max-w-[900px]">
       {/* Minimal consistency heatmap at top of profile */}
-      <div className="mt-6 mb-6">
+      <div className="mb-5">
         <p className="mb-3 text-xs font-extrabold tracking-[.16em] text-[#8993ac]">STUDY CONSISTENCY</p>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-x-4 gap-y-3">
           {monthGroups.map((month) => (
-            <div key={month.key} className="flex flex-col gap-1">
+            <div key={month.key} className="flex flex-col gap-1.5">
               <span className="text-[10px] font-bold text-[#8994aa]">{month.label}</span>
               <div className="flex gap-1">
                 {month.weeks.map((week, wi) => (
-                  <div key={wi} className="flex gap-1">
+                  <div key={wi} className="flex flex-col gap-1">
                     {week.map((cell, di) => {
-                      if (!cell) return <div key={di} className="w-3 h-3" />;
-                      const bg = ["bg-[#ebedf0]", "bg-[#9be9a8]", "bg-[#40c463]", "bg-[#30a14e]", "bg-[#216e39]"][cell.level];
+                      if (!cell) return <div key={di} className="h-3 w-3" />;
+                      const bg = ["bg-[#ebedf0]", "bg-[#9be9a8]", "bg-[#40c463]", "bg-[#30a14e]", "bg-[#216e39]"][cell.level] || "bg-[#ebedf0]";
+                      const [y, m, d] = cell.date.split("-").map(Number);
+                      const dateLabel = new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
                       return (
-                        <div key={di} className={`w-3 h-3 rounded ${bg}`} title={cell.count ? `${cell.count} question${cell.count === 1 ? "" : "s"} on ${new Date(cell.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "No activity"} />
+                        <div key={di} className={`h-3 w-3 rounded-[3px] ${bg}`} title={cell.count ? `${cell.count} question${cell.count === 1 ? "" : "s"} on ${dateLabel}` : `No activity on ${dateLabel}`} />
                       );
                     })}
                   </div>
@@ -510,6 +524,11 @@ function DashboardApp() {
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-[#8994aa]">
+          <span className="mr-1">Less</span>
+          {["bg-[#ebedf0]", "bg-[#9be9a8]", "bg-[#40c463]", "bg-[#30a14e]", "bg-[#216e39]"].map((bg) => <span key={bg} className={`h-3 w-3 rounded-[3px] ${bg}`} />)}
+          <span className="ml-1">More</span>
         </div>
       </div>
 
@@ -560,8 +579,74 @@ function DashboardApp() {
   </div>;
 
   const liveSessions = <div className="space-y-5"><div className="flex items-start justify-between"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">LEARN FROM STUDENTS WHO&apos;VE BEEN THERE</p><h1 className="text-3xl font-extrabold text-[#18223c]">Live sessions</h1><p className="mt-2 text-sm text-[#73809b]">Online conversations and Q&amp;A with students from IITs, NITs and IIITs are being planned.</p></div><span className="rounded-full bg-[#fff3dc] px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-[#b67821]">IN PLANNING</span></div><Card className="max-w-2xl"><CircleHelp size={22} className="text-[#7564ed]" /><p className="mt-4 text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">COMING SOON</p><h2 className="mt-2 text-xl font-extrabold text-[#27314c]">Real experiences. Practical guidance.</h2><p className="mt-2 text-sm leading-6 text-[#73809b]">We&apos;re working towards live online sessions where current students from IITs, NITs and IIITs can share their experiences and answer your questions about preparation and campus life.</p><p className="mt-3 text-sm leading-6 text-[#73809b]">Session dates, speakers and joining details will be shared once confirmed.</p></Card></div>;
-  const content = { overview, "study-plan": plan, practice, pyq: pyqView, "mock-tests": mockTests, challenge, "live-sessions": liveSessions, mistakes: mistakesView, progress, profile: profileView }[view] || overview;
-  return <div className="dashboard-theme min-h-screen bg-[#f7f8fc]"><header className={`fixed top-0 z-30 flex h-16 w-full items-center border-b border-[#e4e8f1] bg-white/95 px-5 backdrop-blur ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}`}><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#a897ff] to-[#6edcdb] font-extrabold text-[#1c2140]">J</span><span className="text-base font-extrabold tracking-tight text-[#1d2945]">JEE<span className="ml-0.5 block text-[8px] tracking-[.25em] text-[#808aa8]">COMPASS</span></span></div><nav aria-label="Main navigation" className="ml-4 hidden items-center gap-1 lg:flex"><Link href="/" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">Home</Link><Link href="/dashboard" className="rounded-lg bg-[#eef0ff] px-3 py-2 text-sm font-semibold text-[#263252]">My dashboard</Link><Link href="/about" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">About</Link><Link href="/features" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">Features</Link><Link href="/resources" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">Resources</Link><Link href="/faq" className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64728d] hover:bg-[#f4f5fb]">FAQ</Link></nav><div className="ml-auto flex items-center gap-2 lg:hidden"><NotificationBell ready={loaded} onOpenView={go} readRecords={notificationReads} onMarkRead={markNotificationsRead} contestHistory={histories.contest} mockHistory={histories.mock} registered={registered} planTasks={planTasks} completed={completed} mistakes={mistakes} streak={stats.streak} todayCount={stats.todayCount} examDays={examDays} /><button onClick={() => setMenuOpen(true)} className="rounded-lg p-2" aria-label="Open navigation"><Menu size={22} /></button></div><div className="ml-auto hidden items-center gap-4 lg:flex"><span className="text-xs text-[#8994aa]">{new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span><ThemeToggle className="!rounded-lg !border-[#e4e8f1]" /><NotificationBell ready={loaded} onOpenView={go} readRecords={notificationReads} onMarkRead={markNotificationsRead} contestHistory={histories.contest} mockHistory={histories.mock} registered={registered} planTasks={planTasks} completed={completed} mistakes={mistakes} streak={stats.streak} todayCount={stats.todayCount} examDays={examDays} /><button onClick={() => go("profile")} className="flex items-center gap-2 text-sm font-bold text-[#34405b]"><UserRound size={18} />{profile.name}</button></div><nav aria-label="Main navigation" className="fixed left-0 right-0 top-16 flex gap-1 overflow-x-auto border-b border-[#e4e8f1] bg-white px-5 py-2 lg:hidden"><Link href="/" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">Home</Link><Link href="/dashboard" className="shrink-0 rounded-lg bg-[#eef0ff] px-3 py-2 text-xs font-semibold text-[#263252]">My dashboard</Link><Link href="/about" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">About</Link><Link href="/features" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">Features</Link><Link href="/resources" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">Resources</Link><Link href="/faq" className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-[#64728d]">FAQ</Link></nav></header>  <aside className={`fixed inset-y-0 left-0 z-40 h-[100dvh] w-[min(18rem,calc(100vw-1rem))] max-w-full overflow-y-auto overscroll-contain border-r border-[#e4e8f1] bg-white px-4 pb-24 pt-24 transition-all lg:translate-x-0 ${sidebarCollapsed ? "lg:w-16" : "lg:w-64"} ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}><button onClick={() => setMenuOpen(false)} className="absolute right-4 top-5 lg:hidden" aria-label="Close navigation"><X /></button><button onClick={() => setSidebarCollapsed((collapsed) => !collapsed)} className="absolute right-3 top-5 hidden rounded-lg p-2 text-[#6d7891] hover:bg-[#f0edff] lg:block" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button><p className="px-3 text-[10px] font-extrabold tracking-[.18em] text-[#a0a8b9] lg:hidden">MAIN NAVIGATION</p><nav aria-label="Main navigation" className="mb-5 space-y-1 lg:hidden"><Link href="/" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">Home</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block rounded-xl bg-[#eef0ff] px-3 py-2 text-sm font-semibold text-[#263252]">My dashboard</Link><Link href="/about" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">About</Link><Link href="/features" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">Features</Link><Link href="/resources" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">Resources</Link><Link href="/faq" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-semibold text-[#6d7891] hover:bg-[#f7f8fc]">FAQ</Link></nav><p className={`px-3 text-[10px] font-extrabold tracking-[.18em] text-[#a0a8b9] ${sidebarCollapsed ? "lg:hidden" : ""}`}>YOUR WORKSPACE</p>  <nav className={`mt-4 space-y-1 ${sidebarCollapsed ? "lg:mt-10" : ""}`}>{navItems.map(([id, label, Icon]) => <button key={id} onClick={() => go(id)} className={`flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold ${view === id ? "bg-[#f0edff] text-[#5e4bc1]" : "text-[#6d7891] hover:bg-[#f7f8fc]"}`}><Icon className="shrink-0" size={18} /><span className={`min-w-0 flex-1 ${sidebarCollapsed ? "lg:hidden" : ""}`}>{label}</span>{id === "live-sessions" ? <small className="shrink-0 whitespace-nowrap text-[9px] font-extrabold text-[#a0a8b9]">PLANNING</small> : null}</button>)}</nav><div className="absolute bottom-6 left-4 right-4 border-t border-[#edf0f5] pt-4"><button onClick={logOut} className="flex w-full items-center gap-3 px-3 py-2 text-sm font-bold text-[#7b879e] hover:text-[#bd5050]"><LogOut size={18} />Log out</button></div></aside>{menuOpen && <button aria-label="Close menu overlay" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-30 bg-[#18223c]/20 lg:hidden" />}<main className={`min-h-screen pt-28 lg:pt-16 ${sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"}`}><div className="mx-auto max-w-[1180px] px-5 py-7 lg:mx-0 lg:max-w-none lg:px-8"><nav aria-label="Dashboard navigation" className="-mx-5 mb-5 flex gap-2 overflow-x-auto border-b border-[#e4e8f1] bg-white px-5 pb-3 lg:hidden">{navItems.map(([id, label, Icon]) => <button key={id} onClick={() => go(id)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${view === id ? "bg-[#f0edff] text-[#5e4bc1]" : "text-[#6d7891]"}`}><Icon size={15} />{label}</button>)}</nav><div className="mb-6 flex items-center justify-between"><p className="text-sm text-[#7c879e]">Your focused preparation workspace</p><span className="rounded-full bg-[#f0edff] px-3 py-1 text-xs font-bold text-[#6553c4]">{viewLabel}</span></div>{content}</div></main></div>;
+  const content = { overview, "study-plan": plan, practice, pyq: pyqView, "mock-tests": mockTests, challenge, "live-sessions": liveSessions, mistakes: mistakesView, "study-circle": <StudyCircle onInvitesChange={setGroupInvites} />, progress, profile: profileView }[view] || overview;
+  const siteLinks = [["/", "Home"], ["/dashboard", "My dashboard"], ["/about", "About"], ["/features", "Features"], ["/resources", "Resources"], ["/faq", "FAQ"]];
+  const collapsed = sidebarCollapsed;
+  const bell = <NotificationBell ready={loaded} onOpenView={go} readRecords={notificationReads} onMarkRead={markNotificationsRead} contestHistory={histories.contest} mockHistory={histories.mock} groupInvites={groupInvites} registered={registered} planTasks={planTasks} completed={completed} mistakes={mistakes} streak={stats.streak} todayCount={stats.todayCount} examDays={examDays} />;
+  const brand = (hideLabel) => <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="JEE Compass home">
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#a897ff] to-[#6edcdb] font-extrabold text-[#1c2140]">J</span>
+    <span className={`text-base font-extrabold tracking-tight text-[#1d2945] ${hideLabel ? "lg:hidden" : ""}`}>JEE<span className="ml-0.5 block text-[8px] tracking-[.25em] text-[#808aa8]">COMPASS</span></span>
+  </Link>;
+
+  return <div className="dashboard-theme min-h-screen overflow-x-clip bg-[#f7f8fc]">
+    <header className={`fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-2 border-b border-[#e4e8f1] bg-white/95 px-3 backdrop-blur transition-[left] duration-200 sm:gap-3 sm:px-5 lg:px-8 ${collapsed ? "lg:left-16" : "lg:left-64"}`}>
+      <button onClick={() => setMenuOpen(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[#34405b] hover:bg-[#f4f5fb] lg:hidden" aria-label="Open navigation"><Menu size={22} /></button>
+      <div className="min-w-0 lg:hidden">{brand(false)}</div>
+      <nav aria-label="Main navigation" className="hidden items-center gap-1 lg:flex">
+        {siteLinks.map(([href, label]) => <Link key={href} href={href} className={`rounded-lg px-3 py-2 text-sm font-semibold ${href === "/dashboard" ? "bg-[#eef0ff] text-[#263252]" : "text-[#64728d] hover:bg-[#f4f5fb]"}`}>{label}</Link>)}
+      </nav>
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-3">
+        <span className="hidden text-xs text-[#8994aa] xl:block">{new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span>
+        <ThemeToggle className="!rounded-lg !border-[#e4e8f1]" />
+        {bell}
+        <button onClick={() => go("profile")} className="flex h-10 items-center gap-2 rounded-lg px-2 text-sm font-bold text-[#34405b] hover:bg-[#f4f5fb]" aria-label="My profile"><UserRound size={18} /><span className="hidden max-w-[9rem] truncate sm:inline">{profile.name}</span></button>
+      </div>
+    </header>
+
+    <aside aria-label="Workspace navigation" className={`fixed inset-y-0 left-0 z-40 flex h-[100dvh] w-[min(18rem,calc(100vw-1rem))] flex-col border-r border-[#e4e8f1] bg-white transition-all duration-200 lg:translate-x-0 ${collapsed ? "lg:w-16" : "lg:w-64"} ${menuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}>
+      <div className={`flex h-16 shrink-0 items-center justify-between gap-2 border-b border-[#edf0f5] px-4 ${collapsed ? "lg:justify-center lg:px-0" : ""}`}>
+        {brand(collapsed)}
+        <button onClick={() => setMenuOpen(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[#6d7891] hover:bg-[#f4f5fb] lg:hidden" aria-label="Close navigation"><X size={20} /></button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
+        <div className="lg:hidden">
+          <p className="px-3 text-[10px] font-extrabold tracking-[.18em] text-[#a0a8b9]">MAIN NAVIGATION</p>
+          <nav aria-label="Main navigation" className="mb-5 mt-2 space-y-1">
+            {siteLinks.map(([href, label]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)} className={`block rounded-xl px-3 py-2.5 text-sm font-semibold ${href === "/dashboard" ? "bg-[#eef0ff] text-[#263252]" : "text-[#6d7891] hover:bg-[#f7f8fc]"}`}>{label}</Link>)}
+          </nav>
+        </div>
+        <p className={`px-3 text-[10px] font-extrabold tracking-[.18em] text-[#a0a8b9] ${collapsed ? "lg:hidden" : ""}`}>YOUR WORKSPACE</p>
+        <nav aria-label="Workspace" className="mt-2 space-y-1">
+          {navItems.map(([id, label, Icon]) => <button key={id} onClick={() => go(id)} title={label} aria-current={view === id ? "page" : undefined} className={`flex w-full min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold ${collapsed ? "lg:justify-center lg:px-0" : ""} ${view === id ? "bg-[#f0edff] text-[#5e4bc1]" : "text-[#6d7891] hover:bg-[#f7f8fc]"}`}>
+            <Icon className="shrink-0" size={18} />
+            <span className={`min-w-0 flex-1 truncate ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
+            {id === "live-sessions" && <small className={`shrink-0 whitespace-nowrap text-[9px] font-extrabold text-[#a0a8b9] ${collapsed ? "lg:hidden" : ""}`}>PLANNING</small>}
+          </button>)}
+        </nav>
+      </div>
+
+      <div className="shrink-0 space-y-1 border-t border-[#edf0f5] p-3">
+        <button onClick={() => setSidebarCollapsed((value) => !value)} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className={`hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-[#6d7891] hover:bg-[#f0edff] lg:flex ${collapsed ? "lg:justify-center lg:px-0" : ""}`}>
+          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}<span className={collapsed ? "lg:hidden" : ""}>Collapse</span>
+        </button>
+        <button onClick={logOut} title="Log out" className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-[#7b879e] hover:text-[#bd5050] ${collapsed ? "lg:justify-center lg:px-0" : ""}`}>
+          <LogOut size={18} className="shrink-0" /><span className={collapsed ? "lg:hidden" : ""}>Log out</span>
+        </button>
+      </div>
+    </aside>
+    {menuOpen && <button aria-label="Close menu overlay" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[35] bg-[#18223c]/30 lg:hidden" />}
+
+    <main className={`min-h-screen min-w-0 pt-16 transition-[padding] duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-64"}`}>
+      <nav aria-label="Dashboard navigation" className="sticky top-16 z-20 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-[#e4e8f1] bg-white px-3 py-2 sm:px-5 lg:hidden">
+        {navItems.map(([id, label, Icon]) => <button key={id} onClick={() => go(id)} aria-current={view === id ? "page" : undefined} className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold ${view === id ? "bg-[#f0edff] text-[#5e4bc1]" : "text-[#6d7891]"}`}><Icon size={15} />{label}</button>)}
+      </nav>
+      <div className="mx-auto min-w-0 max-w-[1180px] px-4 py-6 sm:px-5 lg:mx-0 lg:max-w-none lg:px-8 lg:py-7">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-[#7c879e]">Your focused preparation workspace</p><span className="rounded-full bg-[#f0edff] px-3 py-1 text-xs font-bold text-[#6553c4]">{viewLabel}</span></div>
+        {content}
+      </div>
+    </main>
+  </div>;
 }
 
 export default function Dashboard() { return <DashboardApp />; }
