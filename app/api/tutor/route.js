@@ -2,13 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { HttpError, userRoute } from "@/lib/api-user";
 
 // AI Tutor: answers a student's question with the Google Gemini API (free tier).
-// gemini-2.5-flash is closed to new API keys, so the default is gemini-3.8-flash; set GEMINI_MODEL to change it without touching code.
-// POST { question, history?, context? }
-//   history: earlier turns, oldest first: [{ role: "user" | "model", text }]  (this is what makes follow-up questions work)
-//   context: the practice question the student is looking at: { subject, chapter, text, options, answer? }
-//            `answer` (index of the correct option) is only sent once the student has answered, so hints never give it away.
-
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const SYSTEM_INSTRUCTION = "You are a patient, encouraging AI Tutor for students. Explain concepts step-by-step using clear examples, structured formatting, and simple language.";
 const FORMAT_RULES = [
   "Formatting rules: use short paragraphs, numbered steps, bullet lists with '-', and **bold** for key terms. Do not use tables or LaTeX; write maths in plain text, e.g. v = u + at, x^2, sqrt(2), 3/4.",
@@ -18,7 +12,7 @@ const FORMAT_RULES = [
 const MAX_QUESTION = 2000;
 const MAX_HISTORY = 12; // most recent turns sent to the model
 const MAX_TURN = 4000;
-const RATE_LIMIT = 15; // questions per student per minute, to protect the free quota
+const RATE_LIMIT = 20; // questions per student per minute, to protect the free quota
 const RATE_WINDOW_MS = 60000;
 
 const recent = new Map(); // userId -> timestamps of recent requests (per server process)
@@ -33,12 +27,19 @@ function checkRate(userId) {
 const clean = (value, max) => String(value ?? "").trim().slice(0, max);
 
 function describeContext(context) {
-  if (!context || typeof context !== "object" || !context.text) return "";
+  if (!context) return "";
+  if (typeof context === "string") {
+    return `The student is currently working on this practice question/doubt:\n${clean(context, 1000)}`;
+  }
+  if (typeof context !== "object") return "";
+  const questionText = clean(context.text, 1000);
+  if (!questionText) return "";
+
   const options = Array.isArray(context.options) ? context.options.slice(0, 6).map((option, index) => `${String.fromCharCode(65 + index)}. ${clean(option, 300)}`).join("\n") : "";
   const lines = [
     "The student is currently working on this practice question:",
     `Subject: ${clean(context.subject, 60)} | Chapter: ${clean(context.chapter, 100)}`,
-    `Question: ${clean(context.text, 1000)}`,
+    `Question: ${questionText}`,
     options && `Options:\n${options}`,
   ];
   const answerIndex = Number(context.answer);
@@ -53,15 +54,13 @@ function describeContext(context) {
 function toGeminiError(error) {
   const status = Number(error?.status || error?.code);
   const message = String(error?.message || "");
-  if (status === 404) return new HttpError(502, "The AI Tutor's model (" + MODEL + ") is not available. Set GEMINI_MODEL on the server to a current Gemini model.");
+  if (status === 404) return new HttpError(502, `The AI Tutor's model (${MODEL}) is not available.`);
   if (status === 429 || /quota|rate/i.test(message)) return new HttpError(429, "The AI Tutor is very busy right now (free usage limit reached). Please try again in a minute.");
-  if (status === 400 && /api key/i.test(message)) return new HttpError(502, "The AI Tutor's API key was rejected. Check GEMINI_API_KEY on the server.");
-  if (status === 401 || status === 403) return new HttpError(502, "The AI Tutor's API key is not allowed to use Gemini. Check GEMINI_API_KEY on the server.");
-  if (status === 503 || status === 500) return new HttpError(503, "Gemini is temporarily unavailable. Please try again shortly.");
-  return new HttpError(502, "The AI Tutor could not answer right now. Please try again.");
+  if (status === 400 && /api key/i.test(message)) return new HttpError(502, "The AI Tutor's API key was rejected. Check GEMINI_API_KEY.");
+  if (status === 401 || status === 403) return new HttpError(502, "The AI Tutor's API key is not authorized.");
+  if (status === 503 || status === 500) return new HttpError(503, `Gemini is temporarily unavailable (HTTP ${status}). Please try again shortly.`);
+  return new HttpError(502, error?.message || `The AI Tutor could not answer right now (HTTP ${status || "unknown"}). Please try again.`);
 }
-
-let client;
 
 export const POST = userRoute(async ({ userId, body }) => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -83,7 +82,7 @@ export const POST = userRoute(async ({ userId, body }) => {
   const systemInstruction = [SYSTEM_INSTRUCTION, FORMAT_RULES, describeContext(body.context)].filter(Boolean).join("\n\n");
 
   try {
-    client ||= new GoogleGenAI({ apiKey });
+    const client = new GoogleGenAI({ apiKey });
     const response = await client.models.generateContent({
       model: MODEL,
       contents: [...history, { role: "user", parts: [{ text: question }] }],
@@ -94,7 +93,12 @@ export const POST = userRoute(async ({ userId, body }) => {
     return { reply };
   } catch (error) {
     if (error instanceof HttpError) throw error;
-    console.error("AI Tutor request failed:", error?.status, error?.message);
+    console.error("AI Tutor request failed:", {
+      status: error?.status,
+      code: error?.code,
+      message: error?.message,
+      model: MODEL,
+    });
     throw toGeminiError(error);
   }
 });

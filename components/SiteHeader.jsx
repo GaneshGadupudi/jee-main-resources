@@ -26,7 +26,15 @@ export default function SiteHeader({ active = "" }) {
       <Link href="/" className="mr-auto max-w-[calc(100%-52px)] whitespace-normal text-base font-extrabold leading-tight tracking-tight text-[#17213b] sm:text-lg">JEE Preparation Platform</Link>
       <nav className={`${menuOpen ? "absolute left-0 right-0 top-16 flex border-b border-[#dfe5ef] bg-white p-4 shadow-lg" : "hidden"} z-40 flex-col gap-1 lg:static lg:flex lg:flex-row lg:items-center lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}>
         <Link href="/" onClick={() => setMenuOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${active === "Home" ? "bg-[#eef0ff] text-[#263252]" : "text-[#64728d] hover:bg-[#f4f5fb]"}`}>Home</Link>
-        {authReady && user && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${active === "My dashboard" ? "bg-[#eef0ff] text-[#263252]" : "text-[#64728d] hover:bg-[#f4f5fb]"}`}>My dashboard</Link>}
+        {authReady && user && (
+          <Link
+            href={user.role === "mentor" ? "/mentor/dashboard" : "/dashboard"}
+            onClick={() => setMenuOpen(false)}
+            className={`rounded-xl px-3 py-2 text-sm font-semibold ${(user.role === "mentor" ? active === "Mentor Desk" : active === "My dashboard") ? "bg-[#eef0ff] text-[#263252]" : "text-[#64728d] hover:bg-[#f4f5fb]"}`}
+          >
+            {user.role === "mentor" ? "Mentor Desk" : "My dashboard"}
+          </Link>
+        )}
         {links.slice(1).map(([label, href]) => <Link key={label} href={href} onClick={() => setMenuOpen(false)} className={`rounded-xl px-3 py-2 text-sm font-semibold ${active === label ? "bg-[#eef0ff] text-[#263252]" : "text-[#64728d] hover:bg-[#f4f5fb]"}`}>{label}</Link>)}
         <div className="mt-2 flex flex-wrap gap-2 border-t border-[#edf0f5] pt-3 lg:hidden">
           <ThemeToggle />

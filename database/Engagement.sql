@@ -36,3 +36,32 @@ IF COL_LENGTH(N'dbo.MentorRequests', N'AssignedTo') IS NULL ALTER TABLE dbo.Ment
 IF COL_LENGTH(N'dbo.MentorRequests', N'AdminNote') IS NULL ALTER TABLE dbo.MentorRequests ADD AdminNote NVARCHAR(1000) NULL;
 IF COL_LENGTH(N'dbo.MentorRequests', N'UpdatedAt') IS NULL ALTER TABLE dbo.MentorRequests ADD UpdatedAt DATETIME2(0) NOT NULL CONSTRAINT DF_MentorRequests_UpdatedAt DEFAULT SYSUTCDATETIME();
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_MentorRequests_Status') CREATE INDEX IX_MentorRequests_Status ON dbo.MentorRequests (Status, CreatedAt DESC);
+
+-- Mentor availability: tracks which mentors are online right now.
+IF OBJECT_ID(N'dbo.MentorAvailability', N'U') IS NULL
+CREATE TABLE dbo.MentorAvailability (
+  Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_MentorAvailability PRIMARY KEY,
+  MentorId INT NOT NULL CONSTRAINT FK_MentorAvailability_User REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+  IsOnline BIT NOT NULL CONSTRAINT DF_MentorAvailability_IsOnline DEFAULT 0,
+  LastSeenAt DATETIME2(0) NOT NULL CONSTRAINT DF_MentorAvailability_LastSeenAt DEFAULT SYSUTCDATETIME(),
+  SocketConnectionId NVARCHAR(100) NULL,
+  CONSTRAINT UQ_MentorAvailability_Mentor UNIQUE (MentorId)
+);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_MentorAvailability_Online') CREATE INDEX IX_MentorAvailability_Online ON dbo.MentorAvailability (IsOnline, LastSeenAt DESC);
+
+-- Live video sessions between students and mentors.
+IF OBJECT_ID(N'dbo.MentorVideoSessions', N'U') IS NULL
+CREATE TABLE dbo.MentorVideoSessions (
+  Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_MentorVideoSessions PRIMARY KEY,
+  StudentId INT NOT NULL CONSTRAINT FK_MentorVideoSessions_Student REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+  MentorId INT NULL CONSTRAINT FK_MentorVideoSessions_Mentor REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+  VideoRoomId NVARCHAR(100) NOT NULL,
+  Status VARCHAR(15) NOT NULL CONSTRAINT DF_MentorVideoSessions_Status DEFAULT 'Waiting' CONSTRAINT CK_MentorVideoSessions_Status CHECK (Status IN ('Waiting','Assigned','Accepted','Active','Ended','Cancelled')),
+  Context NVARCHAR(1000) NULL,
+  StartedAt DATETIME2(0) NOT NULL CONSTRAINT DF_MentorVideoSessions_StartedAt DEFAULT SYSUTCDATETIME(),
+  AcceptedAt DATETIME2(0) NULL,
+  EndedAt DATETIME2(0) NULL,
+  CONSTRAINT UQ_MentorVideoSessions_Room UNIQUE (VideoRoomId)
+);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_MentorVideoSessions_Status') CREATE INDEX IX_MentorVideoSessions_Status ON dbo.MentorVideoSessions (Status, StartedAt DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_MentorVideoSessions_Mentor') CREATE INDEX IX_MentorVideoSessions_Mentor ON dbo.MentorVideoSessions (MentorId, Status);
