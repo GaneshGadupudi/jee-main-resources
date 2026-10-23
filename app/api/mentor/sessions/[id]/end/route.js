@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import { getDb, sql } from "@/lib/db";
 
-// PATCH - end an active/accepted video session.
-export async function PATCH(request, context) {
+// Handle ending an active/accepted video session (supports PATCH and POST for sendBeacon).
+async function handleEnd(request, context) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
@@ -17,19 +17,16 @@ export async function PATCH(request, context) {
 
     const pool = await getDb();
 
-    const result = await pool.request()
+    await pool.request()
       .input("id", sql.Int, id)
       .input("mentorId", sql.Int, Number(session.sub))
       .input("endedAt", sql.DateTime2, new Date().toISOString())
       .query(`
         UPDATE dbo.MentorVideoSessions
         SET Status = 'Ended', EndedAt = @endedAt
-        WHERE Id = @id AND MentorId = @mentorId AND Status IN ('Accepted','Active','Assigned');
+        WHERE Id = @id AND (MentorId = @mentorId OR MentorId IS NULL)
+          AND Status IN ('Accepted','Active','Assigned','Waiting');
       `);
-
-    if (!result.rowsAffected[0]) {
-      return NextResponse.json({ error: "Session not found or not active." }, { status: 404 });
-    }
 
     return NextResponse.json({ ok: true, status: "Ended" });
   } catch (error) {
@@ -37,3 +34,5 @@ export async function PATCH(request, context) {
     return NextResponse.json({ error: "Unable to end session." }, { status: 500 });
   }
 }
+
+export { handleEnd as PATCH, handleEnd as POST };

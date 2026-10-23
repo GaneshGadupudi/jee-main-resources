@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import AdminHeader from "@/components/AdminHeader";
 
 const STATUSES = ["Draft", "Published", "Rejected"];
 const blank = { exam: "JEE Main", year: new Date().getFullYear(), shift: "", sourceQuestionId: "", type: "MCQ", text: "", imageUrl: "", options: ["", "", "", ""], correct: [], numericAnswer: "", explanation: "", sourceFile: "", sourcePage: "", topicId: null };
@@ -52,12 +53,28 @@ export default function AdminPyqPage() {
   if (access === "loading") return <main className="grid min-h-screen place-items-center bg-[#f7f8fc] text-sm text-[#73809b]">Loading...</main>;
   if (access === "denied") return <main className="grid min-h-screen place-items-center bg-[#f7f8fc] p-6"><section className="max-w-md rounded-2xl border border-[#e4e8f1] bg-white p-8 text-center"><h1 className="text-2xl font-extrabold text-[#18223c]">Admin only</h1><p className="mt-3 text-sm text-[#73809b]">Log in with the admin account to review PYQ questions.</p><Link href="/login" className="mt-6 inline-flex rounded-xl bg-[#6366f1] px-5 py-3 text-sm font-bold text-white">Go to login</Link></section></main>;
 
-  return <main className="min-h-screen bg-[#f7f8fc] p-4 sm:p-8"><div className="mx-auto max-w-5xl space-y-5">
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><p className="text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">ADMIN</p><h1 className="text-3xl font-extrabold text-[#18223c]">PYQ review</h1>
-        <p className="mt-1 text-sm text-[#73809b]">Compare each question with the official NTA paper and answer key before publishing. Students only see Published questions.</p></div>
-      <div className="flex gap-2"><button className={`${btn} bg-[#6366f1] text-white`} onClick={() => setEditing({ ...blank })}>+ New question</button><Link href="/admin/mentor-requests" className={`${btn} border border-[#dfe5ef] bg-white text-[#46516b]`}>Mentor requests</Link><Link href="/dashboard" className={`${btn} border border-[#dfe5ef] bg-white text-[#46516b]`}>Dashboard</Link></div>
-    </div>
+  return (
+    <div className="min-h-screen bg-[#f7f8fc] antialiased">
+      <AdminHeader currentTab="pyq" />
+      <main className="p-4 sm:p-8">
+        <div className="mx-auto max-w-5xl space-y-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">CURRICULUM REVIEW</p>
+              <h1 className="text-3xl font-extrabold text-[#18223c]">PYQ review</h1>
+              <p className="mt-1 text-sm text-[#73809b]">
+                Compare each question with the official NTA paper and answer key before publishing. Students only see Published questions.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                className={`${btn} bg-[#6366f1] text-white shadow-sm hover:bg-[#5254db] transition`}
+                onClick={() => setEditing({ ...blank })}
+              >
+                + New question
+              </button>
+            </div>
+          </div>
 
     <div className="flex gap-2">{STATUSES.map((s) => <button key={s} onClick={() => { setStatus(s); setEditing(null); }} className={`${btn} ${status === s ? "bg-[#18223c] text-white" : "border border-[#dfe5ef] bg-white text-[#46516b]"}`}>{s} ({data.counts[s] || 0})</button>)}</div>
 
@@ -92,7 +109,10 @@ export default function AdminPyqPage() {
         let parsed; try { parsed = JSON.parse(importText); } catch { return setMessage({ error: true, text: "That is not valid JSON." }); }
         call("/api/admin/pyq", "POST", Array.isArray(parsed) ? { questions: parsed } : parsed, (r) => `Imported ${r.imported} as Draft.${r.results.filter((x) => x.error).map((x) => ` #${x.index + 1}: ${x.error}`).join("")}`);
       }}>Import as drafts</button></details>
-  </div></main>;
+        </div>
+      </main>
+    </div>
+  );
 }
 
 function Editor({ initial, taxonomy, topicInfo, busy, onSave, onPublish, onCancel }) {

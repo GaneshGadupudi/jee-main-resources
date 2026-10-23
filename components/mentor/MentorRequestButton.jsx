@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Bell,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { VideoCall } from "@/components/video/VideoCall";
 
@@ -54,16 +55,92 @@ export default function MentorRequestButton({ question = "", subject = "", chapt
   const [error, setError] = useState("");
   const [inCall, setInCall] = useState(false);
   const [showAcceptedModal, setShowAcceptedModal] = useState(false);
+  const [sessionNotice, setSessionNotice] = useState("");
+
   const pollTimerRef = useRef(null);
   const prevStatusRef = useRef("");
+  const roomIdRef = useRef(null);
+  const inCallRef = useRef(false);
+  const requestedRef = useRef(false);
 
-  // Poll for mentor status when requested
+  // Keep refs up-to-date
   useEffect(() => {
-    if (!requested) return;
+    roomIdRef.current = roomId;
+    inCallRef.current = inCall;
+    requestedRef.current = requested;
+  }, [roomId, inCall, requested]);
+
+  // Auto-clear notice after 7 seconds
+  useEffect(() => {
+    if (!sessionNotice) return;
+    const timer = setTimeout(() => setSessionNotice(""), 7000);
+    return () => clearTimeout(timer);
+  }, [sessionNotice]);
+
+  // BroadcastChannel sync across browser tabs: instant disconnection when mentor ends
+  useEffect(() => {
+    if (typeof window === "undefined" || !("BroadcastChannel" in window)) return;
+    const bc = new BroadcastChannel("jee-doubt-sessions");
+
+    bc.onmessage = (event) => {
+      const data = event.data;
+      if (data?.type === "SESSION_ENDED_BY_MENTOR") {
+        if (!roomIdRef.current || data.roomId === roomIdRef.current) {
+          setInCall(false);
+          setShowAcceptedModal(false);
+          setRequested(false);
+          setRoomId(null);
+          roomIdRef.current = null;
+          setStatus("");
+          setMentor(null);
+          prevStatusRef.current = "";
+          setSessionNotice("Mentor completed and closed the doubt session.");
+          playChime();
+        }
+      }
+    };
+
+    return () => {
+      try { bc.close(); } catch {}
+    };
+  }, []);
+
+  // Handle browser tab close or reload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (roomIdRef.current && (inCallRef.current || requestedRef.current)) {
+        try {
+          const bc = new BroadcastChannel("jee-doubt-sessions");
+          bc.postMessage({ type: "SESSION_ENDED_BY_STUDENT", roomId: roomIdRef.current });
+          bc.close();
+        } catch {}
+
+        try {
+          if (navigator.sendBeacon) {
+            const blob = new Blob([JSON.stringify({ action: "end", roomId: roomIdRef.current })], {
+              type: "application/json",
+            });
+            navigator.sendBeacon("/api/student/session", blob);
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // Poll for mentor status when requested or in-call
+  useEffect(() => {
+    if (!requested && !inCall && !roomId) return;
 
     const poll = async () => {
       try {
-        const res = await fetch("/api/student/session");
+        const currentRoom = roomIdRef.current;
+        const url = currentRoom
+          ? `/api/student/session?roomId=${encodeURIComponent(currentRoom)}`
+          : "/api/student/session";
+        const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -82,7 +159,6 @@ export default function MentorRequestButton({ question = "", subject = "", chapt
           ) {
             playChime();
             setShowAcceptedModal(true);
-            // Browser desktop notification if permitted
             if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
               try {
                 new Notification("JEE Compass Doubt Cleared!", {
@@ -93,41 +169,50 @@ export default function MentorRequestButton({ question = "", subject = "", chapt
             }
           }
 
-          // If session was ended by mentor while student was in call or waiting
-          if (newStatus === "Ended" && (prevStatusRef.current === "Accepted" || prevStatusRef.current === "Active")) {
+          // If session was ended or cancelled by mentor
+          if (newStatus === "Ended" || newStatus === "Cancelled") {
             setInCall(false);
             setShowAcceptedModal(false);
             setRequested(false);
             setRoomId(null);
+            roomIdRef.current = null;
             setStatus("");
+            setMentor(null);
+            prevStatusRef.current = "";
+            setSessionNotice("Mentor completed and closed the doubt session.");
+            playChime();
+          } else {
+            prevStatusRef.current = newStatus;
           }
-
-          prevStatusRef.current = newStatus;
-        } else if (requested && prevStatusRef.current) {
-          // Session was closed/removed
+        } else if ((requestedRef.current || inCallRef.current) && prevStatusRef.current) {
+          // Session was closed/removed from backend
           setInCall(false);
           setShowAcceptedModal(false);
           setRequested(false);
           setRoomId(null);
+          roomIdRef.current = null;
           setStatus("");
+          setMentor(null);
+          prevStatusRef.current = "";
+          setSessionNotice("The doubt session has ended.");
         }
       } catch {}
     };
 
-    // Immediate first poll + recurring poll
     poll();
-    pollTimerRef.current = setInterval(poll, 3000);
+    // Poll fast (every 2 seconds) during active calls or waiting
+    pollTimerRef.current = setInterval(poll, 2000);
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [requested]);
+  }, [requested, inCall, roomId]);
 
   const requestMentor = async () => {
     setBusy(true);
     setError("");
+    setSessionNotice("");
 
-    // Request notification permission if not yet requested
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       try {
         Notification.requestPermission();
@@ -152,6 +237,7 @@ export default function MentorRequestButton({ question = "", subject = "", chapt
       if (!response.ok) throw new Error(data.error || "Unable to request mentor.");
 
       setRoomId(data.roomId);
+      roomIdRef.current = data.roomId;
       setStatus(data.status || "Waiting");
       prevStatusRef.current = data.status || "Waiting";
       setRequested(true);
@@ -162,27 +248,88 @@ export default function MentorRequestButton({ question = "", subject = "", chapt
     }
   };
 
-  const cancelRequest = () => {
+  const cancelRequest = async () => {
+    const currentRoom = roomIdRef.current || roomId;
     setRequested(false);
     setRoomId(null);
+    roomIdRef.current = null;
     setStatus("");
     setMentor(null);
     setInCall(false);
     setShowAcceptedModal(false);
     prevStatusRef.current = "";
+
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("jee-doubt-sessions");
+        bc.postMessage({ type: "SESSION_CANCELLED", roomId: currentRoom });
+        bc.close();
+      }
+    } catch {}
+
+    try {
+      await fetch(`/api/student/session?roomId=${encodeURIComponent(currentRoom || "")}`, {
+        method: "DELETE",
+      });
+    } catch {}
   };
 
-  const handleEndCall = () => {
+  // Called when the student leaves the video call
+  const handleEndCall = async () => {
+    const currentRoom = roomIdRef.current || roomId;
+
+    // Immediately terminate call on student UI
     setInCall(false);
     setShowAcceptedModal(false);
-    // Reset back to initial state so student can request again anytime
-    cancelRequest();
+    setRequested(false);
+    setRoomId(null);
+    roomIdRef.current = null;
+    setStatus("");
+    setMentor(null);
+    prevStatusRef.current = "";
+    setSessionNotice("You left and ended the doubt session.");
+
+    // Broadcast event to mentor tab immediately
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("jee-doubt-sessions");
+        bc.postMessage({ type: "SESSION_ENDED_BY_STUDENT", roomId: currentRoom });
+        bc.close();
+      }
+    } catch {}
+
+    // Tell backend to end session so mentor also leaves automatically
+    try {
+      await fetch("/api/student/session", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "end", roomId: currentRoom }),
+      });
+    } catch {}
   };
 
   const isAccepted = status === "Accepted" || status === "Active";
 
   return (
     <div className="w-full">
+      {/* Informative notice banner (e.g. Mentor ended session / Student ended session) */}
+      {sessionNotice && (
+        <div className="mb-3 flex items-center justify-between rounded-xl bg-[#e4f8f5] border border-[#a7f3d0] p-3 text-xs font-bold text-[#247b70] shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-[#2c967b] shrink-0" />
+            <span>{sessionNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSessionNotice("")}
+            className="p-1 hover:opacity-70 text-[#247b70]"
+            aria-label="Dismiss notice"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* 1. Modal Dialog when mentor accepts */}
       {showAcceptedModal && !inCall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">

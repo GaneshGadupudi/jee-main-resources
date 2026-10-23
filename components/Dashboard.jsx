@@ -18,10 +18,12 @@ import PyqQuestionCard from "@/components/PyqQuestionCard";
 import StudyCircle from "@/components/StudyCircle";
 import AiTutor from "@/components/AiTutor";
 import MentorRequestButton from "@/components/mentor/MentorRequestButton";
+import RequestWrittenSolutionButton from "@/components/mentor/RequestWrittenSolutionButton";
+import StudentWrittenSolutions from "@/components/student/StudentWrittenSolutions";
 import {
   BookOpen, BrainCircuit, Check, ChevronRight, CircleHelp, Clock3,
   Flame, Home, LayoutDashboard, ListChecks, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Play, 
-  BookMarked, Sparkles, Target, Trophy, UserRound, Users, X, Zap,
+  BookMarked, PenTool, Sparkles, Target, Trophy, UserRound, Users, X, Zap,
 } from "lucide-react";
 
 const questions = [
@@ -34,6 +36,7 @@ const navItems = [
   ["overview", "Overview", Home], ["study-plan", "Study plan", ListChecks],
   ["practice", "Daily practice", BrainCircuit], ["aiTutor", "AI Tutor", Sparkles], ["pyq", "PYQ practice", BookMarked], ["mock-tests", "Mock tests", Clock3],
   ["challenge", "Weekly challenge", Trophy], ["live-sessions", "Live sessions", CircleHelp],
+  ["mentor-solutions", "Mentor Solutions", PenTool],
   ["mistakes", "Mistake book", BookOpen], ["study-circle", "Study circle", Users],
   ["progress", "Progress", LayoutDashboard], ["profile", "My profile", UserRound],
 ];
@@ -127,6 +130,7 @@ function DashboardApp() {
   const [notificationReads, setNotificationReads] = useState({});
   const [groupInvites, setGroupInvites] = useState([]);
   const [mentorInfo, setMentorInfo] = useState(null);
+  const [writtenSolutions, setWrittenSolutions] = useState([]);
   const [weeklySummaryStatus, setWeeklySummaryStatus] = useState(null);
 
   useEffect(() => {
@@ -165,6 +169,9 @@ function DashboardApp() {
             setNotificationReads(state.notificationReads);
             setMentorInfo(state.mentor);
             setMentorRequested(!!state.mentor && state.mentor.status !== "Closed");
+            fetch("/api/me/written-solutions").then((r) => (r.ok ? r.json() : null)).then((d) => {
+              if (active && d?.requests) setWrittenSolutions(d.requests);
+            }).catch(() => {});
             const shown = document.documentElement.dataset.theme;
             if (state.theme && state.theme !== shown) applyTheme(state.theme);
             else if (!state.theme && shown === "dark") api("PUT", "/api/me/settings", { theme: "dark" }); // first time on accounts: keep the student's current choice
@@ -370,12 +377,21 @@ function DashboardApp() {
               subject={currentQuestion?.subject || ""}
               chapter={currentQuestion?.chapter || ""}
             />
+            <RequestWrittenSolutionButton
+              question={currentQuestion?.text || ""}
+              subject={currentQuestion?.subject || ""}
+              chapter={currentQuestion?.chapter || ""}
+              options={currentQuestion?.options || []}
+              writtenSolutions={writtenSolutions}
+              onSolutionRequested={(newReq) => setWrittenSolutions((prev) => [newReq, ...prev])}
+              onViewSolutions={() => go("mentor-solutions")}
+            />
           </div>
         </AiTutor>
       </Card>
     </div>
   );
-  const practice = <div className="space-y-5"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">BUILD YOUR DAILY HABIT</p><h1 className="text-3xl font-extrabold text-[#18223c]">Daily practice</h1><p className="mt-2 text-sm text-[#73809b]">Answer, understand your mistake, and keep your revision list current.</p></div><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_290px]"><Card><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-extrabold text-[#7564ed]">{currentQuestion.subject.toUpperCase()}</span><span className="text-xs text-[#8994aa]">Question {practiceIndex + 1} of {questions.length}</span></div><p className="mt-4 text-xs font-bold text-[#7564ed]">{currentQuestion.chapter}</p><h2 className="mt-3 text-xl font-extrabold leading-8 text-[#25304b]">{currentQuestion.text}</h2><div className="mt-6 grid gap-3 sm:grid-cols-2">{currentQuestion.options.map((option, index) => <button key={option} onClick={() => choosePracticeAnswer(index)} className={`min-h-14 rounded-xl border p-4 text-left text-sm font-semibold leading-6 transition ${practiceAnswer === index ? "border-[#8273df] bg-[#f1efff]" : "border-[#e4e8f1] bg-[#fafbfe] hover:border-[#bcb2f0]"}`}>{String.fromCharCode(65 + index)}. {option}</button>)}</div>{practiceAnswer !== null && <div className={`mt-5 rounded-xl p-4 text-sm leading-6 ${practiceAnswer === currentQuestion.answer ? "bg-[#e4f8f5] text-[#247b70]" : "bg-[#fff1f1] text-[#a34e5c]"}`}>{practiceAnswer === currentQuestion.answer ? "Correct! Great work." : <><div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center"><span className="min-w-0 break-words">Added to your mistake book. Tell us what went wrong so we can target it.</span><div className="relative w-full min-w-0 sm:w-auto sm:max-w-[15rem]"><button type="button" aria-expanded={mistakeReasonOpen} onClick={() => setMistakeReasonOpen((open) => !open)} className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#efc3c3] bg-white p-2 text-left text-xs text-[#59647d]"><span className="min-w-0 truncate">{mistakeReason || "Why was it wrong?"}</span><ChevronRight size={14} className={`shrink-0 transition-transform ${mistakeReasonOpen ? "rotate-90" : ""}`} /></button>{mistakeReasonOpen && <div role="listbox" className="mt-1 w-full overflow-hidden rounded-lg border border-[#efc3c3] bg-white shadow-lg">{mistakeReasons.map((reason) => <button key={reason} type="button" role="option" aria-selected={mistakeReason === reason} onClick={() => { setMistakeReason(reason); setMistakeReasonOpen(false); setMistakeReasonFor(currentQuestion.text, reason); }} className="block w-full px-3 py-2 text-left text-xs text-[#59647d] hover:bg-[#f5f2ff]">{reason}</button>)}</div>}</div></div></>}</div>}<div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0f5] pt-5"><span className="text-xs text-[#8994aa]">{practiceAnswer === null ? "Choose an answer to continue" : practiceAnswer === currentQuestion.answer ? "Answer checked" : "Tell us why it was wrong to continue"}</span><Button disabled={practiceAnswer === null || practiceIndex === questions.length - 1 || (practiceAnswer !== currentQuestion.answer && !mistakeReason)} onClick={nextPracticeQuestion} className="w-full sm:w-auto">{practiceIndex === questions.length - 1 ? "Practice complete" : "Next question"} <ChevronRight size={16} /></Button></div></Card><Card className="h-fit bg-gradient-to-b from-[#f4f1ff] to-white"><AiTutor key={currentQuestion.text} answered={practiceAnswer !== null} context={{ subject: currentQuestion.subject, chapter: currentQuestion.chapter, text: currentQuestion.text, options: currentQuestion.options, answer: practiceAnswer !== null ? currentQuestion.answer : undefined }}><div className="mt-4 border-t border-[#e6e1f7] pt-4"><p className="text-xs font-bold text-[#59647d] mb-2">Still unclear?</p><MentorRequestButton question={currentQuestion?.text || ""} subject={currentQuestion?.subject || ""} chapter={currentQuestion?.chapter || ""} /></div></AiTutor></Card></div></div>;
+  const practice = <div className="space-y-5"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">BUILD YOUR DAILY HABIT</p><h1 className="text-3xl font-extrabold text-[#18223c]">Daily practice</h1><p className="mt-2 text-sm text-[#73809b]">Answer, understand your mistake, and keep your revision list current.</p></div><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_290px]"><Card><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-extrabold text-[#7564ed]">{currentQuestion.subject.toUpperCase()}</span><span className="text-xs text-[#8994aa]">Question {practiceIndex + 1} of {questions.length}</span></div><p className="mt-4 text-xs font-bold text-[#7564ed]">{currentQuestion.chapter}</p><h2 className="mt-3 text-xl font-extrabold leading-8 text-[#25304b]">{currentQuestion.text}</h2><div className="mt-6 grid gap-3 sm:grid-cols-2">{currentQuestion.options.map((option, index) => <button key={option} onClick={() => choosePracticeAnswer(index)} className={`min-h-14 rounded-xl border p-4 text-left text-sm font-semibold leading-6 transition ${practiceAnswer === index ? "border-[#8273df] bg-[#f1efff]" : "border-[#e4e8f1] bg-[#fafbfe] hover:border-[#bcb2f0]"}`}>{String.fromCharCode(65 + index)}. {option}</button>)}</div>{practiceAnswer !== null && <div className={`mt-5 rounded-xl p-4 text-sm leading-6 ${practiceAnswer === currentQuestion.answer ? "bg-[#e4f8f5] text-[#247b70]" : "bg-[#fff1f1] text-[#a34e5c]"}`}>{practiceAnswer === currentQuestion.answer ? "Correct! Great work." : <><div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center"><span className="min-w-0 break-words">Added to your mistake book. Tell us what went wrong so we can target it.</span><div className="relative w-full min-w-0 sm:w-auto sm:max-w-[15rem]"><button type="button" aria-expanded={mistakeReasonOpen} onClick={() => setMistakeReasonOpen((open) => !open)} className="flex w-full items-center justify-between gap-2 rounded-lg border border-[#efc3c3] bg-white p-2 text-left text-xs text-[#59647d]"><span className="min-w-0 truncate">{mistakeReason || "Why was it wrong?"}</span><ChevronRight size={14} className={`shrink-0 transition-transform ${mistakeReasonOpen ? "rotate-90" : ""}`} /></button>{mistakeReasonOpen && <div role="listbox" className="mt-1 w-full overflow-hidden rounded-lg border border-[#efc3c3] bg-white shadow-lg">{mistakeReasons.map((reason) => <button key={reason} type="button" role="option" aria-selected={mistakeReason === reason} onClick={() => { setMistakeReason(reason); setMistakeReasonOpen(false); setMistakeReasonFor(currentQuestion.text, reason); }} className="block w-full px-3 py-2 text-left text-xs text-[#59647d] hover:bg-[#f5f2ff]">{reason}</button>)}</div>}</div></div></>}</div>}<div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0f5] pt-5"><span className="text-xs text-[#8994aa]">{practiceAnswer === null ? "Choose an answer to continue" : practiceAnswer === currentQuestion.answer ? "Answer checked" : "Tell us why it was wrong to continue"}</span><Button disabled={practiceAnswer === null || practiceIndex === questions.length - 1 || (practiceAnswer !== currentQuestion.answer && !mistakeReason)} onClick={nextPracticeQuestion} className="w-full sm:w-auto">{practiceIndex === questions.length - 1 ? "Practice complete" : "Next question"} <ChevronRight size={16} /></Button></div></Card><Card className="h-fit bg-gradient-to-b from-[#f4f1ff] to-white"><AiTutor key={currentQuestion.text} answered={practiceAnswer !== null} context={{ subject: currentQuestion.subject, chapter: currentQuestion.chapter, text: currentQuestion.text, options: currentQuestion.options, answer: practiceAnswer !== null ? currentQuestion.answer : undefined }}><div className="mt-4 border-t border-[#e6e1f7] pt-4"><p className="text-xs font-bold text-[#59647d] mb-2">Still unclear?</p><MentorRequestButton question={currentQuestion?.text || ""} subject={currentQuestion?.subject || ""} chapter={currentQuestion?.chapter || ""} /><RequestWrittenSolutionButton question={currentQuestion?.text || ""} subject={currentQuestion?.subject || ""} chapter={currentQuestion?.chapter || ""} options={currentQuestion?.options || []} writtenSolutions={writtenSolutions} onSolutionRequested={(newReq) => setWrittenSolutions((prev) => [newReq, ...prev])} onViewSolutions={() => go("mentor-solutions")} /></div></AiTutor></Card></div></div>;
 
   const mockTests = <MockTests daysLeft={examDays} ready={loaded} history={histories.mock} activeSession={activeTests.mock} onHistory={(next) => setHistories((current) => ({ ...current, mock: next }))} onActive={(next) => setActiveTests((current) => ({ ...current, mock: next }))} onAddMistakes={addMistakes} onFinish={logTest} onReason={setMistakeReasonFor} onExit={() => go("overview")} />;
 
@@ -611,10 +627,51 @@ function DashboardApp() {
   </div>;
 
   const liveSessions = <div className="space-y-5"><div className="flex items-start justify-between"><div><p className="mb-2 text-[10px] font-extrabold tracking-[.18em] text-[#8993ac]">LEARN FROM STUDENTS WHO&apos;VE BEEN THERE</p><h1 className="text-3xl font-extrabold text-[#18223c]">Live sessions</h1><p className="mt-2 text-sm text-[#73809b]">Online conversations and Q&amp;A with students from IITs, NITs and IIITs are being planned.</p></div><span className="rounded-full bg-[#fff3dc] px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-[#b67821]">IN PLANNING</span></div><Card className="max-w-2xl"><CircleHelp size={22} className="text-[#7564ed]" /><p className="mt-4 text-[10px] font-extrabold tracking-[.16em] text-[#8993ac]">COMING SOON</p><h2 className="mt-2 text-xl font-extrabold text-[#27314c]">Real experiences. Practical guidance.</h2><p className="mt-2 text-sm leading-6 text-[#73809b]">We&apos;re working towards live online sessions where current students from IITs, NITs and IIITs can share their experiences and answer your questions about preparation and campus life.</p><p className="mt-3 text-sm leading-6 text-[#73809b]">Session dates, speakers and joining details will be shared once confirmed.</p></Card></div>;
-  const content = { overview, "study-plan": plan, practice, pyq: pyqView, "mock-tests": mockTests, challenge, "live-sessions": liveSessions, aiTutor: aiTutorBlock, mistakes: mistakesView, "study-circle": <StudyCircle onInvitesChange={setGroupInvites} />, progress, profile: profileView }[view] || overview;
+  const content = {
+    overview,
+    "study-plan": plan,
+    practice,
+    pyq: pyqView,
+    "mock-tests": mockTests,
+    challenge,
+    "live-sessions": liveSessions,
+    "mentor-solutions": (
+      <StudentWrittenSolutions
+        onUpdated={() => {
+          fetch("/api/me/written-solutions")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => d?.requests && setWrittenSolutions(d.requests))
+            .catch(() => {});
+        }}
+      />
+    ),
+    aiTutor: aiTutorBlock,
+    mistakes: mistakesView,
+    "study-circle": <StudyCircle onInvitesChange={setGroupInvites} />,
+    progress,
+    profile: profileView,
+  }[view] || overview;
   const siteLinks = [["/", "Home"], ["/dashboard", "My dashboard"], ["/about", "About"], ["/features", "Features"], ["/resources", "Resources"], ["/faq", "FAQ"]];
   const collapsed = sidebarCollapsed;
-  const bell = <NotificationBell ready={loaded} onOpenView={go} readRecords={notificationReads} onMarkRead={markNotificationsRead} contestHistory={histories.contest} mockHistory={histories.mock} groupInvites={groupInvites} registered={registered} planTasks={planTasks} completed={completed} mistakes={mistakes} streak={stats.streak} todayCount={stats.todayCount} examDays={examDays} />;
+  const bell = (
+    <NotificationBell
+      ready={loaded}
+      onOpenView={go}
+      readRecords={notificationReads}
+      onMarkRead={markNotificationsRead}
+      contestHistory={histories.contest}
+      mockHistory={histories.mock}
+      groupInvites={groupInvites}
+      writtenSolutions={writtenSolutions}
+      registered={registered}
+      planTasks={planTasks}
+      completed={completed}
+      mistakes={mistakes}
+      streak={stats.streak}
+      todayCount={stats.todayCount}
+      examDays={examDays}
+    />
+  );
   const brand = (hideLabel) => <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="JEE Compass home">
     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#a897ff] to-[#6edcdb] font-extrabold text-[#1c2140]">J</span>
     <span className={`text-base font-extrabold tracking-tight text-[#1d2945] ${hideLabel ? "lg:hidden" : ""}`}>JEE<span className="ml-0.5 block text-[8px] tracking-[.25em] text-[#808aa8]">COMPASS</span></span>

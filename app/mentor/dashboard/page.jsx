@@ -21,12 +21,15 @@ import {
   FileText,
   UserCheck,
   HelpCircle,
+  PenTool,
 } from "lucide-react";
-import SiteHeader from "@/components/SiteHeader";
+import MentorHeader from "@/components/MentorHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { VideoCall } from "@/components/video/VideoCall";
+import MentorWrittenSolutions from "@/components/mentor/MentorWrittenSolutions";
 
 export default function MentorDashboardPage() {
+  const [activeSection, setActiveSection] = useState("video"); // "video" | "written"
   const [status, setStatus] = useState("loading"); // "loading" | "authenticated" | "unauthenticated" | "forbidden"
   const [user, setUser] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -40,6 +43,88 @@ export default function MentorDashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [mentorNotes, setMentorNotes] = useState("");
   const pollTimerRef = useRef(null);
+  const activeSessionRef = useRef(null);
+  const activeRoomRef = useRef(null);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    activeSessionRef.current = activeSession;
+    activeRoomRef.current = activeRoom;
+  }, [activeSession, activeRoom]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const sec = sp.get("section");
+      if (sec === "written" || sec === "written-solutions") {
+        setActiveSection("written");
+      } else if (sec === "video" || sec === "sessions") {
+        setActiveSection("video");
+      }
+    }
+  }, []);
+
+  // BroadcastChannel sync across browser tabs: instant disconnection when student ends or cancels
+  useEffect(() => {
+    if (typeof window === "undefined" || !("BroadcastChannel" in window)) return;
+    const bc = new BroadcastChannel("jee-doubt-sessions");
+
+    bc.onmessage = (event) => {
+      const data = event.data;
+      if (
+        data?.type === "SESSION_ENDED_BY_STUDENT" ||
+        data?.type === "SESSION_CANCELLED"
+      ) {
+        if (
+          activeSessionRef.current &&
+          (!data.roomId || data.roomId === activeRoomRef.current)
+        ) {
+          setActiveRoom(null);
+          setActiveSession(null);
+          activeSessionRef.current = null;
+          activeRoomRef.current = null;
+          setMentorNotes("");
+          setMessage({
+            text: "The student has ended the doubt session. Returned to desk.",
+            type: "info",
+          });
+          loadSessionsSilently();
+        }
+      }
+    };
+
+    return () => {
+      try { bc.close(); } catch {}
+    };
+  }, []);
+
+  // Handle mentor browser tab close or reload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (activeSessionRef.current) {
+        const curr = activeSessionRef.current;
+        const currentRoom = activeRoomRef.current;
+
+        try {
+          const bc = new BroadcastChannel("jee-doubt-sessions");
+          bc.postMessage({ type: "SESSION_ENDED_BY_MENTOR", roomId: currentRoom, sessionId: curr.id });
+          bc.close();
+        } catch {}
+
+        try {
+          if (navigator.sendBeacon) {
+            const blob = new Blob([JSON.stringify({ endedAt: new Date().toISOString() })], {
+              type: "application/json",
+            });
+            navigator.sendBeacon(`/api/mentor/sessions/${curr.id}/end`, blob);
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   // Initial authentication & data load
   useEffect(() => {
@@ -77,19 +162,20 @@ export default function MentorDashboardPage() {
     };
   }, []);
 
-  // Poll for new sessions and availability every 6 seconds when authenticated
+  // Poll for new sessions and availability: 2.5s when in-call, 5s when idle
   useEffect(() => {
     if (status !== "authenticated") return;
 
+    const interval = activeSession ? 2500 : 5000;
     pollTimerRef.current = setInterval(() => {
       loadSessionsSilently();
       checkAvailability();
-    }, 6000);
+    }, interval);
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [status]);
+  }, [status, activeSession]);
 
   const loadSessionsSilently = async () => {
     try {
@@ -98,6 +184,23 @@ export default function MentorDashboardPage() {
       const data = await res.json();
       if (Array.isArray(data.sessions)) {
         setSessions(data.sessions);
+
+        // If currently in a video call, verify the session has not been ended or cancelled by the student
+        if (activeSessionRef.current) {
+          const currId = activeSessionRef.current.id;
+          const match = data.sessions.find((s) => s.id === currId);
+          if (!match || match.status === "Ended" || match.status === "Cancelled") {
+            setActiveRoom(null);
+            setActiveSession(null);
+            activeSessionRef.current = null;
+            activeRoomRef.current = null;
+            setMentorNotes("");
+            setMessage({
+              text: "The student has ended the doubt session. Returned to desk.",
+              type: "info",
+            });
+          }
+        }
       }
     } catch {}
   };
@@ -109,6 +212,23 @@ export default function MentorDashboardPage() {
       const data = await res.json();
       if (res.ok && Array.isArray(data.sessions)) {
         setSessions(data.sessions);
+
+        if (activeSessionRef.current) {
+          const currId = activeSessionRef.current.id;
+          const match = data.sessions.find((s) => s.id === currId);
+          if (!match || match.status === "Ended" || match.status === "Cancelled") {
+            setActiveRoom(null);
+            setActiveSession(null);
+            activeSessionRef.current = null;
+            activeRoomRef.current = null;
+            setMentorNotes("");
+            setMessage({
+              text: "The student has ended the doubt session. Returned to desk.",
+              type: "info",
+            });
+            return;
+          }
+        }
         setMessage({ text: "Sessions refreshed.", type: "info" });
       } else {
         setMessage({ text: data.error || "Unable to refresh sessions.", type: "error" });
@@ -169,6 +289,8 @@ export default function MentorDashboardPage() {
       if (res.ok) {
         setActiveRoom(session.roomId);
         setActiveSession({ ...session, status: "Accepted" });
+        activeSessionRef.current = { ...session, status: "Accepted" };
+        activeRoomRef.current = session.roomId;
         setMessage({ text: `Accepted session with ${session.student?.name || "Student"}. Connecting...`, type: "success" });
         await loadSessionsSilently();
       } else {
@@ -183,15 +305,31 @@ export default function MentorDashboardPage() {
 
   const endSession = async () => {
     if (!activeSession) return;
+    const currentSession = activeSession;
+    const currentRoom = activeRoom;
     setBusy(true);
+
+    // Immediately cut call on mentor UI
+    setActiveRoom(null);
+    setActiveSession(null);
+    activeSessionRef.current = null;
+    activeRoomRef.current = null;
+    setMentorNotes("");
+
+    // Broadcast to student tab immediately
     try {
-      const res = await fetch(`/api/mentor/sessions/${activeSession.id}/end`, {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("jee-doubt-sessions");
+        bc.postMessage({ type: "SESSION_ENDED_BY_MENTOR", roomId: currentRoom, sessionId: currentSession.id });
+        bc.close();
+      }
+    } catch {}
+
+    try {
+      const res = await fetch(`/api/mentor/sessions/${currentSession.id}/end`, {
         method: "PATCH",
       });
       if (res.ok) {
-        setActiveRoom(null);
-        setActiveSession(null);
-        setMentorNotes("");
         setMessage({ text: "Session completed and closed successfully.", type: "success" });
         await loadSessionsSilently();
       } else {
@@ -253,7 +391,7 @@ export default function MentorDashboardPage() {
   if (status === "unauthenticated") {
     return (
       <>
-        <SiteHeader active="Mentor Desk" />
+        <MentorHeader currentTab={activeSection} onSelectTab={setActiveSection} />
         <main className="grid min-h-[calc(100vh-140px)] place-items-center bg-[#f7f8fc] p-6">
           <section className="w-full max-w-md rounded-2xl border border-[#e4e8f1] bg-white p-8 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0edff] text-[#7564ed]">
@@ -280,7 +418,7 @@ export default function MentorDashboardPage() {
   if (status === "forbidden") {
     return (
       <>
-        <SiteHeader active="Mentor Desk" />
+        <MentorHeader currentTab={activeSection} onSelectTab={setActiveSection} />
         <main className="grid min-h-[calc(100vh-140px)] place-items-center bg-[#f7f8fc] p-6">
           <section className="w-full max-w-md rounded-2xl border border-[#e4e8f1] bg-white p-8 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fee2e2] text-[#dc2626]">
@@ -313,10 +451,33 @@ export default function MentorDashboardPage() {
 
   return (
     <>
-      <SiteHeader active="Mentor Desk" />
+      <MentorHeader currentTab={activeSection} onSelectTab={setActiveSection} />
       <main className="min-h-screen bg-[#f7f8fc] pb-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
-          {/* Header section */}
+          {activeSection === "written" ? (
+            <div>
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#f0edff] px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-[#6353c6] uppercase">
+                    <Shield size={11} /> MENTOR DESK
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#e4f8f5] px-2.5 py-0.5 text-xs font-bold text-[#247b70]">
+                    Handwritten Solutions Hub
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#18223c]">
+                  Written Solutions
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm text-[#73809b]">
+                  Accept student requests, upload photos of your handwritten step-by-step solutions, and send them directly to students. Solutions remain accessible for 30 days.
+                </p>
+              </div>
+
+              <MentorWrittenSolutions />
+            </div>
+          ) : (
+            <>
+              {/* Header section */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -810,6 +971,8 @@ export default function MentorDashboardPage() {
               )}
             </div>
           </div>
+            </>
+          )}
         </div>
       </main>
       <SiteFooter />

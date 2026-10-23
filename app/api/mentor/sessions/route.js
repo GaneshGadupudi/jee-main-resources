@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import { getDb, sql } from "@/lib/db";
 
-// GET - list video sessions for the logged-in mentor (waiting, accepted, active).
+// GET - list video sessions for the logged-in mentor (waiting, accepted, active, and recent history).
 export async function GET() {
   try {
     const session = await getSession();
@@ -17,7 +17,11 @@ export async function GET() {
                u.Name AS StudentName, u.Email AS StudentEmail
         FROM dbo.MentorVideoSessions v
         JOIN dbo.Users u ON u.Id = v.StudentId
-        WHERE v.MentorId IS NULL OR v.MentorId = @mentorId
+        WHERE (v.MentorId IS NULL OR v.MentorId = @mentorId)
+          AND (
+            v.Status IN ('Waiting', 'Assigned', 'Accepted', 'Active')
+            OR (v.Status IN ('Ended', 'Cancelled') AND v.EndedAt >= DATEADD(day, -1, SYSUTCDATETIME()))
+          )
         ORDER BY v.StartedAt DESC
       `);
     return NextResponse.json({ sessions: result.recordset.map((r) => ({

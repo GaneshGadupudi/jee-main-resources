@@ -1,11 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Eye, EyeOff, Expand, Maximize, Mic, MicOff, Phone, Square, Trash2, Video as VideoIcon, VideoOff, PenTool, Scale } from "lucide-react";
+import { AlertCircle, EyeOff, Expand, Maximize, Mic, MicOff, Phone, Square, Trash2, Video as VideoIcon, VideoOff, PenTool, Scale } from "lucide-react";
 
 export function VideoCall({ roomId, studentName = "Student", studentEmail = "", context = "", onEnd, isMentor = false }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
+  const pcRef = useRef(null);
+  const canvasRef = useRef(null);
+
   const [localStream, setLocalStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -17,57 +22,184 @@ export function VideoCall({ roomId, studentName = "Student", studentEmail = "", 
   const [callNotice, setCallNotice] = useState("");
   const [tool, setTool] = useState(null);
   const [drawing, setDrawing] = useState([]);
-  const pcRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const canvasRef = useRef(null);
 
   const cleanup = useCallback(() => {
-    if (localStream) { localStream.getTracks().forEach((t) => { try { t.enabled = false; t.stop(); } catch {} }); setLocalStream(null); }
-    if (screenStream) { screenStream.getTracks().forEach((t) => { try { t.enabled = false; t.stop(); } catch {} }); setScreenStream(null); setScreenSharing(false); }
-    if (pcRef.current) { try { pcRef.current.close(); } catch {} pcRef.current = null; }
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => {
+        try { t.enabled = false; t.stop(); } catch {}
+      });
+      localStreamRef.current = null;
+    }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => {
+        try { t.enabled = false; t.stop(); } catch {}
+      });
+      screenStreamRef.current = null;
+    }
+    setLocalStream(null);
+    setScreenStream(null);
+    setScreenSharing(false);
+    if (pcRef.current) {
+      try { pcRef.current.close(); } catch {}
+      pcRef.current = null;
+    }
     setDrawing([]);
   }, []);
 
   const startCall = useCallback(async () => {
-    try { setBusy(true); setCallNotice(""); let stream = null;
+    try {
+      setBusy(true);
+      setCallNotice("");
+      let stream = null;
       if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
-        catch { try { stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true }); setCallNotice("Video unavailable. Audio only."); } catch { setCallNotice("Camera/Mic blocked."); } }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+            setCallNotice("Video unavailable. Audio only.");
+          } catch {
+            setCallNotice("Camera/Mic blocked.");
+          }
+        }
       }
-      if (stream) { setLocalStream(stream); if (localVideoRef.current) localVideoRef.current.srcObject = stream; }
+      if (stream) {
+        localStreamRef.current = stream;
+        setLocalStream(stream);
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      }
       if (typeof window !== "undefined" && window.RTCPeerConnection) {
         try {
           const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
           pcRef.current = pc;
-          if (stream) { stream.getTracks().forEach((track) => { try { pc.addTrack(track, stream); } catch {} }); }
-          pc.ontrack = (event) => { if (event.streams && event.streams[0]) { setRemoteStream(event.streams[0]); if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0]; setCallConnected(true); } };
-          pc.onconnectionstatechange = () => { if (pc.connectionState === "connected") setCallConnected(true); };
-          if (isMentor) { try { const offer = await pc.createOffer(); await pc.setLocalDescription(offer); } catch {} }
-        } catch { }
+          if (stream) {
+            stream.getTracks().forEach((track) => {
+              try { pc.addTrack(track, stream); } catch {}
+            });
+          }
+          pc.ontrack = (event) => {
+            if (event.streams && event.streams[0]) {
+              setRemoteStream(event.streams[0]);
+              if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
+              setCallConnected(true);
+            }
+          };
+          pc.onconnectionstatechange = () => {
+            if (pc.connectionState === "connected") setCallConnected(true);
+          };
+          if (isMentor) {
+            try {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+            } catch {}
+          }
+        } catch {}
       }
       setTimeout(() => setCallConnected(true), 800);
-    } catch { setTimeout(() => setCallConnected(true), 500); }
-    finally { setBusy(false); }
+    } catch {
+      setTimeout(() => setCallConnected(true), 500);
+    } finally {
+      setBusy(false);
+    }
   }, [isMentor]);
 
-  useEffect(() => { startCall(); return () => cleanup(); }, [roomId, isMentor, startCall, cleanup]);
-  useEffect(() => { const h = (e) => { if (e.key === "Escape" && isFullscreen) setIsFullscreen(false); }; window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); }, [isFullscreen]);
+  useEffect(() => {
+    startCall();
+    return () => cleanup();
+  }, [roomId, isMentor, startCall, cleanup]);
 
-  const toggleMic = useCallback(() => { const next = !micEnabled; setMicEnabled(next); if (localStream) localStream.getAudioTracks().forEach((t) => { t.enabled = next; }); }, [micEnabled, localStream]);
-  const toggleCamera = useCallback(() => { const next = !cameraEnabled; setCameraEnabled(next); if (localStream) localStream.getVideoTracks().forEach((t) => { t.enabled = next; }); }, [cameraEnabled, localStream]);
+  useEffect(() => {
+    const h = (e) => {
+      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [isFullscreen]);
+
+  const toggleMic = useCallback(() => {
+    const next = !micEnabled;
+    setMicEnabled(next);
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((t) => { t.enabled = next; });
+    }
+  }, [micEnabled]);
+
+  const toggleCamera = useCallback(() => {
+    const next = !cameraEnabled;
+    setCameraEnabled(next);
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach((t) => { t.enabled = next; });
+    }
+  }, [cameraEnabled]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!isMentor) return;
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { setCallNotice("Screen share not supported."); return; }
-    try { setBusy(true);
-      if (screenSharing) { if (screenStream) { screenStream.getTracks().forEach((t) => { try { t.enabled = false; t.stop(); } catch {} }); setScreenStream(null); } if (pcRef.current && localStream) { const camTrack = localStream.getVideoTracks()[0]; const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video"); if (sender && camTrack) { try { await sender.replaceTrack(camTrack); } catch {} } } setScreenSharing(false); setCallNotice(""); }
-      else { const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }); setScreenStream(screen); setScreenSharing(true); if (pcRef.current) { const screenTrack = screen.getVideoTracks()[0]; const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video"); if (sender) { try { await sender.replaceTrack(screenTrack); } catch {} } else { try { pcRef.current.addTrack(screenTrack, screen); } catch {} } } screen.getVideoTracks()[0].addEventListener("ended", () => { setScreenSharing(false); setScreenStream(null); if (pcRef.current && localStream) { const camTrack = localStream.getVideoTracks()[0]; const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video"); if (sender && camTrack) { try { sender.replaceTrack(camTrack); } catch {} } } }); }
-    } catch { setCallNotice("Unable to share screen."); }
-    finally { setBusy(false); }
-  }, [isMentor, screenSharing, screenStream, localStream]);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      setCallNotice("Screen share not supported.");
+      return;
+    }
+    try {
+      setBusy(true);
+      if (screenSharing) {
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach((t) => {
+            try { t.enabled = false; t.stop(); } catch {}
+          });
+          screenStreamRef.current = null;
+        }
+        setScreenStream(null);
+        if (pcRef.current && localStreamRef.current) {
+          const camTrack = localStreamRef.current.getVideoTracks()[0];
+          const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender && camTrack) {
+            try { await sender.replaceTrack(camTrack); } catch {}
+          }
+        }
+        setScreenSharing(false);
+        setCallNotice("");
+      } else {
+        const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenStreamRef.current = screen;
+        setScreenStream(screen);
+        setScreenSharing(true);
+        if (pcRef.current) {
+          const screenTrack = screen.getVideoTracks()[0];
+          const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender) {
+            try { await sender.replaceTrack(screenTrack); } catch {}
+          } else {
+            try { pcRef.current.addTrack(screenTrack, screen); } catch {}
+          }
+        }
+        screen.getVideoTracks()[0].addEventListener("ended", () => {
+          setScreenSharing(false);
+          screenStreamRef.current = null;
+          setScreenStream(null);
+          if (pcRef.current && localStreamRef.current) {
+            const camTrack = localStreamRef.current.getVideoTracks()[0];
+            const sender = pcRef.current.getSenders().find((s) => s.track && s.track.kind === "video");
+            if (sender && camTrack) {
+              try { sender.replaceTrack(camTrack); } catch {}
+            }
+          }
+        });
+      }
+    } catch {
+      setCallNotice("Unable to share screen.");
+    } finally {
+      setBusy(false);
+    }
+  }, [isMentor, screenSharing]);
 
-  const handleEndCall = useCallback(() => { cleanup(); if (onEnd) onEnd(); }, [cleanup, onEnd]);
-  const toggleFullscreen = useCallback(() => { setIsFullscreen((p) => !p); }, []);
+  const handleEndCall = useCallback(() => {
+    cleanup();
+    if (onEnd) onEnd();
+  }, [cleanup, onEnd]);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((p) => !p);
+  }, []);
 
   const rawName = typeof studentName === "string" && studentName.trim() ? studentName : (isMentor ? "Student" : "Mentor");
   const avatarLetter = (rawName.charAt(0) || "S").toUpperCase();
